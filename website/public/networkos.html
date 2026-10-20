@@ -708,11 +708,10 @@ const ONB_CTX = {
 };
 const NEG_CTX_RE = /\b(not interested|not a fit|no longer|bad terms|don't contact|do not contact)\b/i;
 let REAL = null;  // the owner's real contacts, once loaded (see loadContacts)
-const founder = () => (typeof ME !== "undefined" && ME ? ME.name.split(" ")[0] : "Sam");
+const founder = () => { try { return ME ? ME.name.split(" ")[0] : "you"; } catch { return "you"; } };  // ME may not exist yet at start-up
 function withCtx(s) {
-  if (REAL) { s.people = REAL.map(realPerson); return s; }
-  s.people = s.people.map((p) => (ONB_CTX[p.id] ? { ...p, ...ONB_CTX[p.id] } : p)).map((p) => (SRC_OF[p.id] ? { ...p, from: SRC_OF[p.id] } : p));
-  s.people.push(...EXTRA.map(extraPerson));
+  // Only the founder's own contacts; until they load there is nobody (never the example network).
+  s.people = (REAL || []).flatMap((r, i) => { try { return [realPerson(r, i)]; } catch (e) { console.error("Skipped contact row", i, r && r.name, e); return []; } });
   return s;
 }
 
@@ -865,7 +864,7 @@ const SEED = () => withCtx({
   d: { phase: "pick", picked: [], notes: "", ex: {}, gap: null, gapAnswer: null, i: 0, items: {} },
   debriefDay: "Fri",
   net: { filter: "all", q: "", open: null, adding: false, add: { name: "", role: "", co: "", where: "" } },
-  chat: { msgs: [{ role: "assistant", text: "Hi Sam. I'm your agent team. Ask me anything about your network, or tap the mic and just talk." }], draft: "", busy: false, listening: false, transcript: "", speak: true, vi: 0, open: false, speaking: false },
+  chat: { msgs: [{ role: "assistant", text: `Hi ${founder()}. I'm your agent team. Ask me anything about your network, or tap the mic and just talk.` }], draft: "", busy: false, listening: false, transcript: "", speak: true, vi: 0, open: false, speaking: false },
 });
 
 let S = SEED();
@@ -981,7 +980,7 @@ function bar() {
     <button class="bbtn" type="button" data-act="band-reset">Reset</button>`;
   const pct = Math.max(0, Math.min(100, (S.credits / S.plan) * 100));
   return `<div class="brand">${ICON.logo}NetworkOS</div>
-    <span class="pill ${working() ? "working" : ""}" title="Band room #sam-network"><span class="dot"></span>${working() ? "Working" : "Band"}</span>
+    <span class="pill ${working() ? "working" : ""}" title="Band: RelationshipOS agents"><span class="dot"></span>${working() ? "Working" : "Band"}</span>
     <span class="pill ${S.credits < CREDITS_PER_PERSON ? "low" : ""}" title="Credits metered by Flexprice"><b>${S.credits}</b>credits<span class="meter"><i style="width:${pct}%"></i></span></span>
     ${meChip()}`;
 }
@@ -1000,7 +999,7 @@ function stepsBar(n, of) { return `<div class="steps" aria-label="Step ${n} of $
 
 function roomBlock(wid, steps, idx, phase) {
   return `<div class="room">
-    <div class="room-head"><span>Band <b>#sam-network</b> · <b>${wid}</b></span><a href="https://app.band.ai" target="_blank" rel="noopener">Open in Band ↗</a></div>
+    <div class="room-head"><span>Band · <b>${wid}</b></span><a href="https://app.band.ai" target="_blank" rel="noopener">Open in Band ↗</a></div>
     <ol aria-label="Agent handoffs">${steps.map((s, i) => {
       const st = phase === "done" || i < idx ? "done" : i === idx ? (phase === "ask" ? "human" : "working") : "wait";
       const h = AGENTS.find((x) => x.name === s.ag).lead ? '<span class="harness">lead</span>' : "";
@@ -1012,15 +1011,15 @@ function roomBlock(wid, steps, idx, phase) {
 /* ---------- Demo picker ---------- */
 function viewDemo() {
   return `<div class="screen gut">
-    <section><span class="eyebrow">Demo</span><h1>How do you want to see NetworkOS?</h1>
+    <section><span class="eyebrow">${S.people.length ? `${plural(S.people.length, "contact", "contacts")} loaded` : "NetworkOS"}</span><h1>How do you want to start?</h1>
       <p class="lede">Pick a starting point. You can come back here any time from Settings.</p></section>
     <div class="opts">
       <button class="opt demo-opt" type="button" data-act="demo-new"><span class="txt"><span class="nm">New user</span><br>
-        <span class="rl">Landing page, onboarding and the first network scan. About 2 minutes.</span></span><span class="chev">${ICON.chev}</span></button>
-      <button class="opt demo-opt" type="button" data-act="demo-regular"><span class="txt"><span class="nm">Existing user</span><br>
-        <span class="rl">A founder who set up last week. Plan, network, debrief and agents are ready to go.</span></span><span class="chev">${ICON.chev}</span></button>
+        <span class="rl">Onboarding and the first scan of your contacts. About 2 minutes.</span></span><span class="chev">${ICON.chev}</span></button>
+      <button class="opt demo-opt" type="button" data-act="demo-regular"><span class="txt"><span class="nm">Go to my plan</span><br>
+        <span class="rl">Straight to your plan, network, debrief and agents, built from your contacts.</span></span><span class="chev">${ICON.chev}</span></button>
     </div>
-    <p class="fine"><span>All people, companies and usage are examples. Nothing is sent.</span></p>
+    <p class="fine"><span>People come only from your contacts file. Nothing is sent without your approval.</span></p>
   </div>`;
 }
 
@@ -1031,7 +1030,7 @@ function viewSettings() {
   const pct = Math.max(0, Math.min(100, (S.credits / S.plan) * 100));
   const fresh_n = fresh().length;
   return `<div class="screen gut">
-    <section><span class="eyebrow">${ME ? esc(ME.name) : "Sam"}${o.company.trim() ? ` · ${esc(o.company)}` : ""}</span><h1>Settings</h1></section>
+    <section><span class="eyebrow">${ME ? esc(ME.name) : "NetworkOS"}${o.company.trim() ? ` · ${esc(o.company)}` : ""}</span><h1>Settings</h1></section>
 
     <section><h2>Account</h2>
       <div class="card set">${accountHTML()}</div></section>
@@ -1076,8 +1075,7 @@ function viewSettings() {
 
 /* ---------- Landing ---------- */
 function viewLanding() {
-  const prev = REAL ? S.people.filter((p) => p.cand).sort((a, b) => b.rec.score - a.rec.score).slice(0, 3).map((p) => [p.id, p.rec.action.slice(0, 60), p.rec.score])
-    : [["alex", "Send the demo before Oct 28", 9], ["ravi", "Former teammate, just started looking", 8], ["hana", "Intro path through Marcus", 7]];
+  const prev = S.people.filter((p) => p.cand).sort((a, b) => b.rec.score - a.rec.score).slice(0, 3).map((p) => [p.id, p.rec.action.slice(0, 60), p.rec.score]);
   return `<div class="land gut">
     <section>
       <span class="eyebrow rise">For founders</span>
@@ -1087,7 +1085,7 @@ function viewLanding() {
     </section>
 
     <section class="card preview rise d3" aria-label="Example of what you get">
-      <div class="ph"><span class="label"><span class="live-dot" aria-hidden="true"></span>Your next moves</span><span class="note">Example</span></div>
+      <div class="ph"><span class="label"><span class="live-dot" aria-hidden="true"></span>Your next moves</span><span class="note">From your contacts</span></div>
       ${prev.map(([id, line, s], k) => { const p = person(id); return `<div class="prow rise d${k + 4}">
         ${p.via ? `<span class="duo" style="width:44px;height:34px"><span class="av sm ${person(p.via).av}" style="top:1px">${person(p.via).ini}</span><span class="av sm ${p.av}" style="top:1px;left:14px">${p.ini}</span></span>` : `<span class="av sm ${p.av}">${p.ini}</span>`}
         <div class="txt"><div class="nm">${p.name}</div><div class="rl">${line}</div><div class="pmeter"><i style="width:${s * 10}%;animation-delay:${0.6 + k * 0.15}s"></i></div></div>
@@ -1336,7 +1334,7 @@ function profileSteps() {
     { ag: "Strategy", body: `${o.changes.length ? "Re-ranked with your context:" : "Your notes didn't change the ranking."} <span class="at">@Outreach</span>
       ${o.changes.length ? `<ul class="split">${o.changes.map((c) => { const p = person(c.id); return `<li><span class="av xs ${p.av}">${p.ini}</span><span class="n">${p.name}</span><span class="m ${c.to < c.from ? "gap" : ""}">${c.from} → ${c.to}</span></li>`; }).join("")}</ul>` : ""}
       <span class="recall">Goals: ${S.onb.goals.map((g) => GOALS[g]).join(" · ")}</span>` },
-    { ag: "Outreach", body: `${rewritten ? `Rewrote ${plural(rewritten, "draft", "drafts")} to use what you told me.` : "Kept the drafts. They already match what you said."}<span class="recall">Sam writes short emails that lead with a number</span>` },
+    { ag: "Outreach", body: `${rewritten ? `Rewrote ${plural(rewritten, "draft", "drafts")} to use what you told me.` : "Kept the drafts. They already match what you said."}<span class="recall">${founder()} writes short emails that lead with a number</span>` },
   ];
 }
 function startProfiles() {
@@ -1355,7 +1353,7 @@ function startProfiles() {
 function startRegular() {
   clearTimeout(timer);
   S = SEED();
-  B = REAL ? bandFresh() : bandComplete();
+  B = bandFresh();
   const o = S.onb;
   o.company = "Ledgerly, bookkeeping for freelancers";
   o.sources = SOURCES.map((s) => s.id);
@@ -1366,7 +1364,7 @@ function startRegular() {
   S.board.push({ id: "W-01", title: "First network scan", col: "done", owner: "Strategy" });
   logMem("add", "Research", `Imported ${num(rawCount())} contacts from 4 sources`);
   cogSeed(found());
-  logMem("improve", "Planner", "Learned Sam's style from 200 sent emails: short, lead with a number");
+  logMem("improve", "Planner", `Learned ${founder()}'s style from 200 sent emails: short, lead with a number`);
   o.i = 4;
   o.picked = cands().map((p) => p.id);
   o.notes = o.picked.map((id) => person(id).sample).filter(Boolean).join(" ");
@@ -1374,7 +1372,7 @@ function startRegular() {
   ["Planner", "Strategy", "Outreach"].forEach((ag) => bill(ag, o.picked.length));
   S.board.unshift({ id: "W-02", title: `Build profiles from ${founder()}'s notes`, col: "done", owner: "Outreach" });
   S.memStats.facts += o.picked.reduce((a, id) => a + o.ex[id].facts.length, 0);
-  logMem("add", "Planner", "Profiles built from Sam's onboarding notes");
+  logMem("add", "Planner", `Profiles built from ${founder()}'s onboarding notes`);
   finishOnboarding();
 }
 function applyProfiles() {
@@ -1427,7 +1425,7 @@ function scanSteps() {
     { ag: "Strategy", body: `Scored the ${num(found().length)} against your goals. ${cands().length} stand out, including warm ties that went quiet and one intro path. The ${fresh().length} people you met in the last 2 weeks need your context, so they're saved for your first debrief. <span class="at">@Outreach</span>
       <span class="recall">Goals: ${S.onb.goals.map((g) => GOALS[g]).join(" · ")}</span>` },
     { ag: "Outreach", body: `Learned your writing style from 200 sent emails and drafted a first message for each pick.
-      <span class="wrote">improve · Sam writes short emails that lead with a number</span>` },
+      <span class="wrote">improve · ${founder()} writes short emails that lead with a number</span>` },
   ];
 }
 function startScan() {
@@ -1447,7 +1445,7 @@ function scanTick() {
   if (o.i === 0) logMem("add", "Research", `Imported ${num(rawCount())} contacts from ${o.sources.length} sources`);
   if (o.i === 1) { S.memStats = { people: found().length, facts: COG.nodes }; cogSeed(found()); }
   if (o.i === 2) logMem("search", "Strategy", `“who fits ${S.onb.goals.join(", ")} and is warm?” → ${cands().length} people`);
-  if (o.i === 3) logMem("improve", "Planner", "Learned Sam's style from 200 sent emails: short, lead with a number");
+  if (o.i === 3) logMem("improve", "Planner", `Learned ${founder()}'s style from 200 sent emails: short, lead with a number`);
   o.i++;
   if (o.i < 4) moveItem("W-01", "doing", order[o.i]);
   else { moveItem("W-01", "done", "Strategy"); o.picked = cands().map((p) => p.id); }
@@ -1522,9 +1520,9 @@ function roomSteps() {
     { ag: "Strategy", body: `Mapped everyone to your goals: ${countTxt}. ${gp ? `<span class="at">@Planner</span> I need more on ${first(gp)} before we draft.` : `<span class="at">@Outreach</span> please draft.`}
       <span class="recall">${esc(ids.slice(0, 3).map((id) => person(id).rec.memo).join(" · "))}</span>` },
   ];
-  if (gp) steps.push({ ag: "Planner", ask: true, body: `<span class="at">@Sam</span> ${esc(gp.gapQ || `You didn't mention ${first(gp)}. What should I know?`)}${d.gapAnswer ? `<br><span class="answer">${esc(d.gapAnswer)}</span>` : ""}` });
+  if (gp) steps.push({ ag: "Planner", ask: true, body: `<span class="at">@${esc(founder())}</span> ${esc(gp.gapQ || `You didn't mention ${first(gp)}. What should I know?`)}${d.gapAnswer ? `<br><span class="answer">${esc(d.gapAnswer)}</span>` : ""}` });
   const drafts = ids.filter((id) => goalOf(person(id).rec) !== "warm").length;
-  steps.push({ ag: "Outreach", body: `Drafted ${plural(drafts, "follow-up", "follow-ups")}. They're waiting for your approval.<span class="recall">Sam writes short emails that lead with a number (learned at first scan)</span>` });
+  steps.push({ ag: "Outreach", body: `Drafted ${plural(drafts, "follow-up", "follow-ups")}. They're waiting for your approval.<span class="recall">${founder()} writes short emails that lead with a number (learned at first scan)</span>` });
   return steps;
 }
 function viewRun() {
@@ -1610,7 +1608,7 @@ function tick() {
   }
   Object.values(d.items).forEach((w) => moveItem(w, "doing", nx.ag));
   if (nx.ag === "Strategy") logMem("search", "Strategy", `“goals and pipeline” → ${d.picked.slice(0, 3).map((id) => person(id).rec.memo).join("; ")}`);
-  if (nx.ag === "Outreach") logMem("search", "Outreach", "“Sam's email style” → short, lead with a number");
+  if (nx.ag === "Outreach") logMem("search", "Outreach", `“${founder()}'s email style” → short, lead with a number`);
   render();
   timer = setTimeout(tick, 1100);
 }
@@ -1626,7 +1624,7 @@ function answerGap(text) {
   moveItem("W-11", "doing", "Outreach", `Weekly debrief with ${founder()}`);
   d.i++;
   Object.values(d.items).forEach((w) => moveItem(w, "doing", "Outreach"));
-  logMem("search", "Outreach", "“Sam's email style” → short, lead with a number");
+  logMem("search", "Outreach", `“${founder()}'s email style” → short, lead with a number`);
   render();
   timer = setTimeout(tick, 1100);
 }
@@ -1705,7 +1703,7 @@ function viewMoves() {
   const h = new Date().getHours();
   const hello = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   return `<div class="screen gut">
-    <section class="greet"><span class="eyebrow">Tuesday, Oct 20</span><h1>${hello}, ${ME ? esc(ME.name.split(" ")[0]) : "Sam"}</h1>
+    <section class="greet"><span class="eyebrow">Tuesday, Oct 20</span><h1>${hello}, ${esc(founder())}</h1>
       <p class="lede">${top.length + needsCount() ? `${plural(top.length + needsCount(), "thing needs", "things need")} you today` : "Nothing urgent today"}${dueOwe.length ? `, including ${plural(dueOwe.length, "promise", "promises")} coming due` : ""}. Ask your agents anything below.</p></section>
     ${needsYouHTML()}
     <section class="card askcard">
@@ -1772,7 +1770,7 @@ function contactFrom({ name, role, co, where, email, notes }) {
     av: ["a", "b", "c", "d", "e"][S.people.length % 5], role, co, key: co, when, src: "CSV import", email, signal: met ? `Met at ${met}` : "Imported from CSV",
     sample: notes || `${fn} from ${co} and I talked${met ? ` at ${met}` : ""} about working together, and I said I'd follow up next week.`,
     rec: { score, goal, why: notes ? `${notes} ${help}` : `Imported from your CSV${met ? `, met at ${met}` : ""}. ${help}`, action: "Send a short follow-up",
-      research: `${co}: profile and recent news pulled`, memo: `Imported by Sam${met ? ` · met at ${met}` : ""}`,
+      research: `${co}: profile and recent news pulled`, memo: `Imported by ${founder()}${met ? ` · met at ${met}` : ""}`,
       draft: `Hi ${fn},\n\nGreat meeting you${met ? ` at ${met}` : ""}. I'd love to keep the conversation going. Do you have 20 minutes next week?\n\nSam` } };
 }
 async function readCSV(file) {
@@ -2028,8 +2026,8 @@ function closeSheet() {
 
 function networkContext() {
   const open = openNext().map((n) => { const p = person(n.personId), r = p.rec;
-    return `- ${p.name}, ${p.role} at ${p.co}${p.via ? ` (intro via ${person(p.via).name})` : ""}: ${r.score}/10, goal ${GOALS[goalOf(r)]}. Why: ${r.why} Next step: ${r.action}.${S.d.ex[p.id] ? ` Sam said: ${S.d.ex[p.id].facts.join(" ")}` : ""}${p.notes ? ` Sam said: ${p.notes.join(" ")}` : ""}${p.signal ? ` Found in network: ${p.signal}.` : ""}`; });
-  const prom = S.promises.map((x) => `- ${x.kind === "owe" ? "Sam owes" : "Owed to Sam"}: ${x.t} (${person(x.pid).name}${x.due ? `, ${x.due}` : ""})`);
+    return `- ${p.name}, ${p.role} at ${p.co}${p.via ? ` (intro via ${person(p.via).name})` : ""}: ${r.score}/10, goal ${GOALS[goalOf(r)]}. Why: ${r.why} Next step: ${r.action}.${S.d.ex[p.id] ? ` ${founder()} said: ${S.d.ex[p.id].facts.join(" ")}` : ""}${p.notes ? ` ${founder()} said: ${p.notes.join(" ")}` : ""}${p.signal ? ` Found in network: ${p.signal}.` : ""}`; });
+  const prom = S.promises.map((x) => `- ${x.kind === "owe" ? `${founder()} owes` : `Owed to ${founder()}`}: ${x.t} (${person(x.pid).name}${x.due ? `, ${x.due}` : ""})`);
   const done = S.next.filter((n) => n.status !== "open").map((n) => `- ${person(n.personId).name}: ${n.status}`);
   const waiting = S.d.phase === "pick" || S.d.phase === "tell" ? `Not debriefed yet (met in the last 2 weeks): ${fresh().map((p) => `${p.name} (${p.role}, ${p.co})`).join("; ")}` : "";
   return `Company: ${S.onb.company.trim() || "not given"}\nGoals: ${S.onb.goals.map((g) => GOALS[g]).join("; ")}\nMemory: ${S.memStats.people} people, ${S.memStats.facts} facts.\nOpen next moves:\n${open.join("\n") || "none"}\nPromises:\n${prom.join("\n") || "none"}\nHandled:\n${done.join("\n") || "none"}\n${waiting}`;
@@ -2088,8 +2086,8 @@ async function ask(text, voice = false) {
   c.msgs.push(m);
   c.busy = true; c.draft = "";
   renderChat();
-  const rules = `You are NetworkOS, a founder's AI agent team (Planner as the lead, Research, Strategy, Outreach) that keeps track of their relationships. The founder is Sam. Today is Tuesday, Oct 20.
-Answer Sam's latest message using only the network data below. Reply the way you'd talk out loud: 1 to 4 short sentences, plain text, no markdown, no bullet symbols. Name the people and the concrete next step. If something isn't in the data, say you don't know yet and suggest the weekly debrief. Never say a message was sent: every message waits for Sam's approval.
+  const rules = `You are NetworkOS, a founder's AI agent team (Planner as the lead, Research, Strategy, Outreach) that keeps track of their relationships. The founder is ${founder()}. Today is Tuesday, Oct 20.
+Answer ${founder()}'s latest message using only the network data below. Reply the way you'd talk out loud: 1 to 4 short sentences, plain text, no markdown, no bullet symbols. Name the people and the concrete next step. If something isn't in the data, say you don't know yet and suggest the weekly debrief. Never say a message was sent: every message waits for ${founder()}'s approval.
 
 NETWORK DATA
 ${networkContext()}`;
@@ -2159,15 +2157,15 @@ function viewAgents() {
       <div class="num"><b>${fmt$(c)}</b><br>${fmtK(t)} · ${s} sess</div></li>`;
   }).join("");
   return `<div class="screen gut">
-    <section><span class="eyebrow">Band room #sam-network</span><h1>Your agent team</h1>
+    <section><span class="eyebrow">Band · RelationshipOS agents</span><h1>Your agent team</h1>
       <p class="lede">Four agents in Band, led by the Planner, share one plan and one memory. They ask you before anything goes out.</p></section>
     <section class="card nudge"><div class="txt"><b>Band Desktop</b>Watch a run live: who's working, every handoff, tokens and cost, and where you approve.</div><button class="btn sm" type="button" data-nav="band">Open</button></section>
     <section><h2>Agents <small>External · 4 in Band</small> <span data-livebadge>${liveBadge()}</span></h2>
       <ul class="card agents">${agents}<li class="total"><span class="mono">Σ</span><div class="txt"><div class="nm">Room total</div><div class="rl">Since you joined</div></div><div class="num"><b>${fmt$(tot[2])}</b><br>${fmtK(tot[1])} · ${tot[0]} sess</div></li></ul></section>
     <section><h2>Plan <small>posted by Planner</small></h2>
       <div class="card plan"><span class="label">Week of Oct 20</span><ol>
-        <li>Get Sam's approval on first messages to the top picks from the scan.</li>
-        <li>Run Sam's first weekly debrief on the ${fresh().length} people met since Oct 6.</li>
+        <li>Get ${founder()}'s approval on first messages to the top picks from the scan.</li>
+        <li>Run ${founder()}'s first weekly debrief on the ${fresh().length} people met since Oct 6.</li>
         <li>Research, map to the raise, the hire and design partners, and draft follow-ups for approval.</li></ol></div></section>
     <section><h2>Board</h2>
       <div class="lanes">${lanes.map(([k, label]) => {
@@ -2179,7 +2177,7 @@ function viewAgents() {
       <div class="card"><div class="memhead"><span>Shared by all 4 agents. Survives restarts.</span>
         <button class="btn sm quiet" id="restart" type="button" ${S.restarted || working() ? "disabled" : ""}>Restart sessions</button></div>
         <ul class="memlog" aria-live="polite">${S.log.map((l) => `<li><span class="op ${l.op === "forget" ? "forget" : l.op === "system" ? "sys" : ""}">${l.op}</span><span><span class="ag">${l.ag}:</span> ${esc(l.t)}</span></li>`).join("")}</ul></div></section>
-    <p class="fine"><span>Example people, companies and usage. Nothing is sent.</span></p>
+    <p class="fine"><span>People from your contacts file. Nothing is sent without your approval.</span></p>
   </div>`;
 }
 function restart() {
@@ -2236,7 +2234,7 @@ const BAND_STEPS = [
     lines: ["Person: Priya Shah, Partner at Northbeam Ventures", "Topics: traction, pre-seed fintech", "Promise: send the deck this week"],
     handoff: "Planner opened W-12 in Band and assigned Research, Strategy and Outreach." },
   { at: 3.1, agent: "planner", task: "t2", doing: "Searching memory…", verb: "Recalled", dur: 1.9, tokens: 2420,
-    lines: ["Northbeam is on Sam's target list (Sep 28)", "Marcus Lee co-invested with Northbeam in 2025", "Sam writes short emails that lead with a number"],
+    lines: ["Northbeam is on Sam's target list (Sep 28)", "Marcus Lee co-invested with Northbeam in 2025", "${founder()} writes short emails that lead with a number"],
     handoff: "Planner passed 3 memories to Research." },
   { at: 5.3, agent: "research", task: "t3", doing: "Looking up Priya and Northbeam…", verb: "Found", dur: 3.0, tokens: 5800,
     lines: ["Northbeam led 3 fintech pre-seeds in 2026", "Priya made partner in March and runs the SMB thesis", "Warm path: Marcus Lee knows her"],
@@ -2297,7 +2295,7 @@ function bandComplete() {
   BAND_AGENTS.forEach((a) => (b.agents[a.id].sec = BAND_PRESET_SEC[a.id]));
   return b;
 }
-let B = bandComplete();
+let B = bandFresh();
 
 function bandAdvance(dt) {
   if (!B.running || B.paused) return false;
@@ -2334,7 +2332,7 @@ function bandLive() {
   if (st) st.innerHTML = bandStatusHTML();
 }
 /* What the background team needs from Sam right now: a Band approval and/or a debrief question. */
-const bandPendingCard = () => (!REAL && B.phase === "waiting" ? [...B.items].reverse().find((i) => i.type === "approval" && !i.decided) : null);
+const bandPendingCard = () => (false && B.phase === "waiting" ? [...B.items].reverse().find((i) => i.type === "approval" && !i.decided) : null);
 function needsCount() { return (bandPendingCard() || (LIVE.run && LIVE.run.status === "waiting") ? 1 : 0) + (S.d.phase === "ask" ? 1 : 0); }
 function needsYouHTML() {
   const card = bandPendingCard();
@@ -2346,7 +2344,7 @@ function needsYouHTML() {
       <div class="needs-who"><span aria-hidden="true">✉️</span> <b>Outreach</b> wants to send a message to Priya Shah</div>
       <div class="draft clamp">${esc(card.draft)}</div>
       <div class="acts3"><button class="btn sm" type="button" data-act="band-approve">Approve</button><button class="btn sm quiet" type="button" data-act="band-edit-home">Edit</button><button class="btn sm quiet" type="button" data-act="band-reject">Reject</button></div>
-      <div class="band-line"><span>Band #sam-network · 4 agents</span><span>${(t.tokens / 1000).toFixed(1)}k tok · $${t.cost.toFixed(2)}</span></div>
+      <div class="band-line"><span>Band · 4 agents</span><span>${(t.tokens / 1000).toFixed(1)}k tok · $${t.cost.toFixed(2)}</span></div>
     </section>`;
   const lr = LIVE.run;
   if (!card && lr && lr.status === "waiting" && lr.draft_body) html += `<section class="card needs" aria-label="Needs your approval">
@@ -2455,14 +2453,15 @@ function viewBand() {
   const statusCls = { idle: "skipped", working: "info", done: "done", waiting: "new" };
   const statusLbl = { idle: "Idle", working: "Working", done: "Done", waiting: "Needs you" };
   return `<div class="screen gut">
-    <section><span class="eyebrow">Band room #sam-network · demo run</span><h1>Agent team, live</h1>
+    <section><span class="eyebrow">Band · your real agents</span><h1>Agent team, live</h1>
       <p class="lede">Which agent is doing what, how work is handed off, what it costs, and where you step in.</p></section>
     <section class="card live" id="live">${liveInner()}</section>
     <section class="card btrans" id="btrans" aria-live="polite">${B.items.length ? B.items.map((it) => bandItemHTML(it, lastStep && lastStep.id)).join("") : '<p class="empty" style="padding:8px 0">The team is idle. Press Run to watch it work.</p>'}</section>
-    <section><h2>Tasks <small>tap to move one forward</small></h2>
-      <ul class="card btasks">${BAND_TASKS.map((tk) => { const st = B.tasks[tk.id]; const a = bAgent(tk.agent);
-        return `<li><button class="btask" type="button" data-btask="${tk.id}"><span class="tbox ${st}" aria-hidden="true">${st === "done" ? "✓" : ""}</span>
-          <span class="txt"><span class="nm">${esc(tk.label)}</span><span class="rl">${a.icon} ${a.name}</span></span><span class="tstate ${st}">${TASK_LABEL[st]}</span></button></li>`; }).join("")}</ul></section>
+    <section><h2>Tasks <small>this run, from Band</small></h2>
+      <ul class="card btasks">${LIVE_STAGES.map((ag, i) => { const r = LIVE.run; const st = !r ? "todo" : r.stage > i || ["waiting", "approved", "answered"].includes(r.status) ? "done" : r.stage === i ? "progress" : "todo";
+        const lbl = ["Read the note and plan", "Look the person up", "Score and decide the next action", "Draft the follow-up"][i];
+        return `<li><div class="btask"><span class="tbox ${st}" aria-hidden="true">${st === "done" ? "✓" : ""}</span>
+          <span class="txt"><span class="nm">${lbl}</span><span class="rl">${LIVE_NAMES[ag]}</span></span><span class="tstate ${st}">${TASK_LABEL[st]}</span></div></li>`; }).join("")}</ul></section>
     <section><h2>Agents <small>tokens · cost · session</small></h2>
       <ul class="card bagents">${BAND_AGENTS.map((a) => { const g = B.agents[a.id];
         return `<li><span class="bico big" aria-hidden="true">${a.icon}</span><div class="txt"><div class="nm">${a.name} <span class="status ${statusCls[g.status]}">${statusLbl[g.status]}</span></div>
@@ -2555,7 +2554,7 @@ function realPerson(r, i) {
   const met = ruDate(r.met), follow = ruDate(r.followup), last = ruDate(r.last);
   const cand = r.action === "Да" && goal !== "warm";
   const fresh = !cand && !!met && met.yr === 2026 && met.mon === 10 && met.day >= 6;
-  const owner = ME ? ME.name.split(" ")[0] : "Sam";
+  const owner = founder();
   const where = r.where.split(",")[0];
   return { id: "c" + i, real: true, cand, fresh, extra: !cand && !fresh, name, alias: r.name, ini: (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase(),
     av: ["a", "b", "c", "d", "e"][i % 5], role: r.role.split(" — ")[0].slice(0, 80) || "Contact", co: r.company || "Independent", key: r.company,
@@ -2581,8 +2580,12 @@ async function loadContacts() {
     GOAL_OPTS.splice(0, 3, { id: "raise", nm: "Investors", rl: "People who could invest or open a round" },
       { id: "hire", nm: "Work and paid projects", rl: "Jobs, paid projects, mentoring" }, { id: "partners", nm: "Partnerships and intros", rl: "Partners, intros, collaborations" });
     S = SEED(); B = bandFresh();
-    toast(`Loaded your ${REAL.length} contacts`);
-  } catch { REAL = null; }
+    toast(`Loaded your ${S.people.length} contacts`);
+  } catch (e) {
+    REAL = null; S = SEED(); B = bandFresh();
+    console.error("Couldn't load contacts", e);
+    toast(`Couldn't load your contacts: ${e.message}`);
+  }
 }
 
 /* ---------- Account: real Google sign-in ---------- */
@@ -2644,10 +2647,10 @@ async function liveStart(text) {
   } catch (e) { Object.assign(LIVE, { status: "offline", error: e.message }); liveRender(); }
 }
 async function livePoll(id) {
-  const was = LIVE.run && LIVE.run.status;
+  const was = LIVE.run && `${LIVE.run.status}/${LIVE.run.stage}`;
   try { LIVE.run = await liveJSON(`/api/demo?run=${encodeURIComponent(id)}`); LIVE.error = ""; } catch (e) { LIVE.error = e.message; }
   liveRender();
-  if (LIVE.run && LIVE.run.status !== was && (S.view === "moves" || S.view === "agents")) render();  // the approval card and badges
+  if (LIVE.run && `${LIVE.run.status}/${LIVE.run.stage}` !== was && ["moves", "agents", "band"].includes(S.view)) render();  // approval card, badges, Band tasks
   const r = LIVE.run;
   // keep polling while it works, and a little longer for the Band room id to land
   if (!r || r.status === "running" || (!r.band_room && LIVE.band && LIVE.extra++ < 8)) LIVE.poll = setTimeout(() => livePoll(id), 1500);
@@ -2674,7 +2677,7 @@ function liveInner() {
   if (!r) {
     const msg = LIVE.status === "starting" ? "Sending the note to the Planner…"
       : LIVE.error ? esc(LIVE.error)
-      : "Press <b>Run</b>. The same note goes to RelationshipOS Planner, Research, Strategy and Outreach in Band, and Cognee recalls and keeps it. Everything else on this page is example data.";
+      : "Press <b>Run</b>. Your top-priority contact goes to RelationshipOS Planner, Research, Strategy and Outreach in Band, and Cognee recalls and keeps it.";
     return head + `<p class="lnote">${msg}</p>`;
   }
   const notes = r.notes || [];
@@ -2791,7 +2794,7 @@ document.addEventListener("click", (e) => {
     if (!S.next.find((x) => x.personId === p.id)) {
       if (goalOf(p.rec) === "warm") p.rec = { ...p.rec, score: 5 };
       addFollowUp(p);
-      logMem("add", "Strategy", `Sam added ${first(p)} to the plan`);
+      logMem("add", "Strategy", `${founder()} added ${first(p)} to the plan`);
     }
     render();
     toast(`${p.name} added to your plan`);
@@ -2834,7 +2837,7 @@ document.addEventListener("click", (e) => {
     S.promises = S.promises.filter((x) => x.pid !== p.id);
     S.next.filter((n) => n.personId === p.id).forEach((n) => { n.status = "forgotten"; moveItem(n.wid, "done", "Planner", `Forgotten: ${p.name}`); });
     S.memStats.people = Math.max(0, S.memStats.people - 1);
-    logMem("forget", "Planner", `Removed ${p.name} from memory at Sam's request`);
+    logMem("forget", "Planner", `Removed ${p.name} from memory at ${founder()}'s request`);
     S.forgetAsk = false;
     go("network"); toast(`${p.name} forgotten`);
   }
@@ -2842,8 +2845,8 @@ document.addEventListener("click", (e) => {
   else if (ds.act === "band-back") go("agents");
   else if (ds.act === "band-run") {
     // With your real contacts there's no scripted run: your top priority goes straight to the real agents.
-    if (REAL) { const text = realBandInput(); B = bandFresh(); B.items.push({ type: "user", text }); render(false); liveStart(text); }
-    else { B = bandFresh(); bandLoadScript(B); B.running = true; B.phase = "running"; render(false); liveStart(BAND_INPUT); }
+    if (!S.people.length) { toast(ME ? "Your contacts aren't loaded yet. Reload the page." : "Sign in to load your contacts."); return; }
+    const text = realBandInput(); B = bandFresh(); B.items.push({ type: "user", text }); render(false); liveStart(text);
   }
   else if (ds.act === "live-approve") liveApprove();
   else if (ds.act === "band-pause") { if (B.running) { B.paused = !B.paused; render(); } }
@@ -2869,7 +2872,8 @@ document.addEventListener("click", (e) => {
   else if (ds.act === "ai-close") closeSheet();
   else if (ds.act === "speak") { S.chat.speak = !S.chat.speak; if (!S.chat.speak) { try { speechSynthesis.cancel(); } catch {} } if (S.view === "settings") render(); else renderChat(); }
   else if (ds.act === "demo-new") { B = bandFresh(); go("landing"); }
-  else if (ds.act === "demo-regular") { startRegular(); toast("Existing user: Sam set up last week"); }
+  else if (ds.act === "demo-regular" && !S.people.length) toast(ME ? "Your contacts aren't loaded yet. Reload the page." : "Sign in to load your contacts.");
+  else if (ds.act === "demo-regular") { startRegular(); toast(`Welcome back, ${founder()}`); }
   else if (ds.day) { S.debriefDay = ds.day; render(); }
   else if (ds.ask) { openSheet(false); ask(ds.ask); }
   else if (ds.act === "to-connect") { o.phase = "connect"; render(false); }
@@ -2884,7 +2888,7 @@ document.addEventListener("click", (e) => {
   else if (ds.act === "to-tell") { d.phase = "tell"; render(false); }
   else if (ds.act === "back-pick") { d.phase = "pick"; render(false); }
   else if (ds.act === "sample") { d.notes = d.picked.map((id) => person(id).sample).join(" "); render(); }
-  else if (ds.act === "topup") { S.credits += 100; logMem("system", "Flexprice", "Top-up: 100 credits added to Sam's wallet"); render(); toast("100 credits added"); }
+  else if (ds.act === "topup") { S.credits += 100; logMem("system", "Flexprice", `Top-up: 100 credits added to ${founder()}'s wallet`); render(); toast("100 credits added"); }
   else if (ds.act === "send") send();
   else if (ds.say) answerGap(ds.say);
   else if (ds.toggle) { const x = n(ds.toggle); x.open = !x.open; x.editing = false; x.pending = undefined; render(); }
@@ -2905,7 +2909,7 @@ document.addEventListener("click", (e) => {
     moveItem(x.wid, "done", "Outreach");
     S.promises = S.promises.filter((pr) => !(pr.kind === "owe" && pr.pid === x.personId));
     const p = person(x.personId);
-    logMem("add", "Outreach", `Sent ${p.via ? `intro ask to ${first(person(p.via))} for ${first(p)}` : `follow-up to ${first(p)}`}, approved by Sam`);
+    logMem("add", "Outreach", `Sent ${p.via ? `intro ask to ${first(person(p.via))} for ${first(p)}` : `follow-up to ${first(p)}`}, approved by ${founder()}`);
     render();
     toast("Approved in Band. Outreach queued the send.");
   } else if (ds.snooze) {

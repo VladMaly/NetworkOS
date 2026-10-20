@@ -285,7 +285,7 @@ export function NetworkOS() {
 
           <section className="nx-team ly-pane" aria-label="AI team">
             <div className="nx-row-head">
-              <h2><Icon n="mic" s={17} /> {running ? "AI team is working…" : "AI team is ready"}</h2>
+              <h2><Icon n="bot" s={18} /> {running ? "AI team is working…" : "AI team is ready"}</h2>
               <a href="#band" className="nx-link">View in Band Desktop <Icon n="arrow" s={15} /></a>
             </div>
             <ol className="nx-flow">

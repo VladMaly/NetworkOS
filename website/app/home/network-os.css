@@ -96,18 +96,18 @@
 /* priorities */
 .nx-pri { display: grid; gap: 12px; padding: 4px 0 0; }
 .nx-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.nx-card { display: grid; gap: 6px; align-content: start; padding: 16px; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; min-width: 0; transition: background var(--duration-ui) var(--ease-smooth), box-shadow var(--duration-ui) var(--ease-smooth), transform 160ms var(--ease-smooth); }
+.nx-card { display: flex; flex-direction: column; gap: 6px; padding: 16px; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; min-width: 0; transition: background var(--duration-ui) var(--ease-smooth), box-shadow var(--duration-ui) var(--ease-smooth), transform 160ms var(--ease-smooth); }
 .nx-card:hover { background: rgba(255,255,255,0.8); }
 .nx-card:active { transform: scale(0.99); }
 .nx-card.is-on { background: #fff; box-shadow: inset 0 0 0 1.5px var(--white), 0 26px 50px -30px rgba(11,18,24,0.4); }
 .nx-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
 .nx-card-name { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; }
 .nx-card-role { font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nx-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.nx-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
 .nx-tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 8px; font-size: 12px; color: var(--dim); background: rgba(28,40,49,0.05); white-space: nowrap; }
 .nx-tag.is-hot { color: #B4531A; background: var(--orange-soft); }
 .nx-tag.is-score { padding-left: 0; background: transparent; color: var(--mid); font-weight: 500; }
-.nx-card-next { display: grid; gap: 2px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.nx-card-next { display: grid; gap: 2px; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
 .nx-card-next b { font-size: 13.5px; font-weight: 600; }
 .nx-when { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--dim); }
 
@@ -118,7 +118,7 @@
 .nx-who h3 { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
 .nx-who p { font-size: 13.5px; color: var(--dim); }
 .nx-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
-.nx-tabs button { flex: none; height: 38px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--tab); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color var(--duration-ui) var(--ease-smooth), border-color var(--duration-ui) var(--ease-smooth); }
+.nx-tabs button { flex: none; height: 38px; padding: 0 10px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--tab); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color var(--duration-ui) var(--ease-smooth), border-color var(--duration-ui) var(--ease-smooth); }
 .nx-tabs button:hover { color: var(--top); }
 .nx-tabs button.is-on { color: var(--top); font-weight: 500; border-bottom-color: var(--orange); }
 .nx-tab-body { animation: os-fade-in 0.4s var(--ease-calm) both; }
@@ -282,6 +282,7 @@
 /* fewer columns as the window narrows */
 @media (max-width: 1600px) {
   .nx-shell { grid-template-columns: 216px minmax(0, 1fr) 276px; }
+  .nx-activity { position: static; max-height: none; }
   .nx-right { grid-column: 2 / -1; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
 }
 @media (max-width: 1240px) {

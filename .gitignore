@@ -3,3 +3,7 @@
 .DS_Store
 Thumbs.db
 .vercel
+
+# Personal data and local copies, never committed
+Networking and Database - Contacts.csv
+*.contacts.csv

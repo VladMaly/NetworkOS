@@ -234,7 +234,8 @@ h2 small { font-family: var(--f-body); font-size: 12.5px; font-weight: 500; colo
 .agents .mono { width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--f-mono); font-size: 17px; font-weight: 500; flex: none; position: relative; }
 .agents .mono.on::after { content: ""; position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); animation: pulse 1s ease-in-out infinite; }
 .agents .txt { flex: 1; min-width: 0; }
-.live { display: grid; gap: 10px; }
+.live { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.card.live { padding: 14px; }
 .live .lhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lbadge { font-size: 12px; font-weight: 600; color: var(--muted); }
 .lbadge.on { color: var(--accent); }
@@ -334,6 +335,13 @@ h2 small { font-family: var(--f-body); font-size: 12.5px; font-weight: 500; colo
 .pmeter i { display: block; height: 100%; background: var(--accent); border-radius: 2px; animation: grow 1.1s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes grow { from { width: 0; } }
 .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 6px; animation: pulse 1.2s ease-in-out infinite; vertical-align: middle; }
+.me { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 30px; max-width: 150px; padding: 0 10px 0 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+button.me:hover { border-color: var(--accent); }
+span.me { cursor: default; }
+.me img, .me .ini { width: 24px; height: 24px; border-radius: 50%; flex: none; object-fit: cover; }
+.me .ini { display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; }
+.me .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 400px) { .me { padding: 2px; } .me .nm { display: none; } }
 .signin { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 14px; padding: 8px 4px; }
 
 .stat-link { border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
@@ -462,6 +470,12 @@ h2 small { font-family: var(--f-body); font-size: 12.5px; font-weight: 500; colo
 .addform { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .addrow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .addsrc { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 12px; }
+.drop { display: grid; gap: 2px; padding: 16px; border: 1.5px dashed var(--line); border-radius: 12px; text-align: center; cursor: pointer; background: var(--surface-2); }
+.drop b { font-size: 15px; }
+.drop span { font-size: 12.5px; color: var(--muted); }
+.sr { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.csvprev ul { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--muted); }
+.note.err { color: #B5452F; }
 .addsrc .srcs li { padding: 10px 0; }
 
 /* Network tab */
@@ -686,8 +700,64 @@ const ONB_CTX = {
 };
 const NEG_CTX_RE = /\b(not interested|not a fit|no longer|bad terms|don't contact|do not contact)\b/i;
 function withCtx(s) {
-  s.people = s.people.map((p) => (ONB_CTX[p.id] ? { ...p, ...ONB_CTX[p.id] } : p));
+  s.people = s.people.map((p) => (ONB_CTX[p.id] ? { ...p, ...ONB_CTX[p.id] } : p)).map((p) => (SRC_OF[p.id] ? { ...p, from: SRC_OF[p.id] } : p));
+  s.people.push(...EXTRA.map(extraPerson));
   return s;
+}
+
+/* Which connected account each person is found in. People met in the last two weeks are always there. */
+const SRC_OF = { alex: "gmail", ravi: "gmail", hana: "linkedin", owen: "gmail", grace: "calendar", marcus: "linkedin", nina: "contacts", mei: "calendar",
+  priya: "linkedin", sarah: "calendar", daniel: "contacts", lena: "linkedin", jordan: "calendar", tom: "gmail" };
+/* Everyone else your agents track: real-looking ties with no reason to reach out this week. Kept in memory. */
+const EXTRA = [
+  ["Ben Carter", "CFO", "Northwind Studio", "gmail", "6 threads about invoicing · last Jun 2025", 4],
+  ["Chloe Martin", "Founder", "Stitchwork", "linkedin", "Liked 3 of your posts · DM in March", 4],
+  ["David Osei", "Product Lead", "Remitly", "gmail", "Intro call in Feb 2025", 5],
+  ["Elena Rossi", "Partner", "Lumen Angels", "linkedin", "Met at Fintech Week 2024", 5],
+  ["Farid Haddad", "Engineer", "Wise", "contacts", "Saved after a hackathon in 2024", 3],
+  ["Gabriela Souza", "Head of Growth", "Bonsai", "gmail", "Swapped growth notes in April", 4],
+  ["Hiro Sato", "Designer", "Freelance", "contacts", "Designed your first logo", 3],
+  ["Isla Morgan", "Community Lead", "Indie Hackers", "linkedin", "Commented on your launch post", 4],
+  ["Jack Turner", "Associate", "Hustle Fund", "calendar", "1 call in Jan 2025", 5],
+  ["Kavya Reddy", "Staff Engineer", "Stripe", "linkedin", "Ex-colleague of Ravi", 4],
+  ["Leo Fischer", "Founder", "Taxly", "gmail", "Traded customer intros in 2024", 4],
+  ["Maya Brooks", "Scout", "Harbor Ventures", "calendar", "Coffee in Sep 2024", 5],
+  ["Noah Kim", "Accountant", "Kim & Co", "contacts", "Your own accountant", 2],
+  ["Olivia Grant", "Head of Partnerships", "Upwork", "gmail", "Partnership thread went quiet in 2024", 5],
+  ["Pablo Ruiz", "Engineer", "Mercury", "linkedin", "2nd-degree via Mei", 3],
+  ["Quinn Avery", "Podcast Host", "Bootstrapped FM", "gmail", "Asked you on the show in 2024", 4],
+  ["Rosa Delgado", "Ops Manager", "Fiverr", "calendar", "2 meetings in 2024", 4],
+  ["Sam Patel", "Angel investor", "ex-Gusto", "linkedin", "Followed you after Demo Day", 5],
+  ["Tara Nguyen", "Recruiter", "Underdog.io", "gmail", "Sent you 3 candidates in 2024", 4],
+  ["Umar Farooq", "CTO", "Paystack", "linkedin", "Met at Money20/20 2024", 5],
+  ["Vera Ivanova", "Product Designer", "Revolut", "contacts", "Friend from a design meetup", 3],
+  ["Will Harper", "Founder", "Gigwise", "calendar", "Demo swap in Mar 2025", 4],
+  ["Xin Li", "Analyst", "Point Nine", "gmail", "Asked for your deck in 2024", 5],
+  ["Yara Haddad", "Head of Finance", "Contra", "linkedin", "Commented on your pricing post", 4],
+  ["Zoe Adams", "Founder", "Shopfront", "contacts", "Met at a coworking space", 3],
+  ["Aaron Blake", "VP Sales", "Brex", "gmail", "Cold thread, replied once", 2],
+  ["Bianca Costa", "Engineer", "Nubank", "linkedin", "Applied to your job post in 2024", 3],
+  ["Carlos Mendes", "Partner", "Kaszek", "calendar", "Office hours in 2024", 5],
+  ["Dana Levi", "Writer", "Fintech Brainfood", "gmail", "Quoted you in a newsletter", 4],
+  ["Ethan Cole", "Founder", "Workstream", "linkedin", "Founder group chat", 4],
+  ["Fatima Zahra", "PM", "Deel", "calendar", "User interview in 2025", 5],
+  ["George Hall", "Lawyer", "Cooley", "contacts", "Did your incorporation", 3],
+  ["Hannah Weiss", "Investor", "Seedcamp", "linkedin", "Met at Slush 2024", 5],
+  ["Ivan Petrov", "Engineer", "Monzo", "gmail", "Open-source contributor", 3],
+  ["Julia Santos", "Founder", "Freelancer Union", "calendar", "Panel together in 2025", 5],
+  ["Kenji Watanabe", "CTO", "Plaid", "linkedin", "Liked your ledger write-up", 4],
+  ["Lucy Evans", "Ops Lead", "Etsy", "gmail", "Asked about payouts in 2024", 4],
+  ["Mateo Silva", "Student", "Stanford", "contacts", "Asked for career advice", 2],
+  ["Nora Jensen", "Partner", "Creandum", "calendar", "Intro call in Nov 2024", 5],
+  ["Omar Aziz", "Founder", "Ledgerline", "linkedin", "Building something similar", 3],
+];
+const SRC_NAME = { linkedin: "LinkedIn", calendar: "Calendar", gmail: "Gmail", contacts: "Contacts" };
+function extraPerson([name, role, co, from, signal, score], i) {
+  const f = name.split(" ")[0];
+  return { id: "x" + i, extra: true, name, ini: name.split(" ").map((w) => w[0]).join("").slice(0, 2), av: ["a", "b", "c", "d", "e"][i % 5], role, co, from,
+    src: SRC_NAME[from], signal, kind: ["", "Keep warm"],
+    rec: { score, goal: "warm", why: `${signal}. No clear reason to reach out this week, so your agents keep ${f} in memory.`, action: "Keep in memory",
+      research: `${co}: role and recent news`, memo: `Kept warm since ${signal.match(/\d{4}/)?.[0] || "2024"}`, draft: "" } };
 }
 
 const SEED = () => withCtx({
@@ -800,8 +870,17 @@ const fmt$ = (n) => "$" + n.toFixed(2);
 const num = (n) => n.toLocaleString("en-US");
 const scanning = () => S.view === "onboard" && ((S.onb.phase === "scan" && S.onb.i < 4) || (S.onb.phase === "profile" && S.onb.pi < 3));
 const working = () => S.d.phase === "working" || scanning() || (typeof B !== "undefined" && B.running && !B.paused);
-const fresh = () => S.people.filter((p) => p.fresh && !p.debriefed && !p.forgotten);
-const cands = () => S.people.filter((p) => p.cand && S.onb.goals.includes(p.rec.goal));
+const fresh = () => S.people.filter((p) => p.fresh && !p.debriefed && !p.forgotten && isFound(p));
+const isFound = (p) => !p.from || S.onb.sources.includes(p.from);
+const found = () => S.people.filter((p) => !p.forgotten && isFound(p) && (p.cand || p.fresh || p.extra));
+const cands = () => S.people.filter((p) => p.cand && isFound(p) && S.onb.goals.includes(p.rec.goal));
+const fits = () => found().filter((p) => goalOf(p.rec) !== "warm" && S.onb.goals.includes(p.rec.goal)).length;
+/* What each account holds before your agents drop the people you never actually talked to. */
+const rawCount = () => found().length;
+const srcPeople = (id) => S.people.filter((p) => p.from === id && !p.forgotten && (p.cand || p.fresh || p.extra)).length;
+const SRC_LINE = { linkedin: (n) => `${plural(n, "connection", "connections")} you've messaged`, calendar: (n) => `${plural(n, "person", "people")} you've met since 2024`,
+  gmail: (n) => `${plural(n, "person", "people")} you've emailed · read-only`, contacts: (n) => `${plural(n, "saved contact", "saved contacts")}` };
+SOURCES.forEach((src) => Object.defineProperty(src, "rl", { get: () => SRC_LINE[src.id](srcPeople(src.id)) }));
 const openNext = () => S.next.filter((n) => n.status === "open" && !person(n.personId).forgotten);
 const goalOf = (r) => (r.score < 5 ? "warm" : r.goal);
 const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
@@ -813,7 +892,12 @@ function toast(msg) {
   clearTimeout(toast._t);
   toast._t = setTimeout(() => t.classList.remove("show"), 2600);
 }
-function logMem(op, ag, t) { S.log.unshift({ op, ag, t }); }
+const COG_SKIP = /^(Imported|Connected|Cognee|First scan|Copied to Cognee|Top-up)/;
+let cogQueue = [], cogTimer = null;
+function logMem(op, ag, t) {
+  S.log.unshift({ op, ag, t });
+  if ((op === "add" || op === "improve") && !COG_SKIP.test(t)) { cogQueue.push(`${ag}: ${t}`); clearTimeout(cogTimer); cogTimer = setTimeout(cogFlush, 1500); }
+}
 function moveItem(id, col, owner, title) {
   const w = S.board.find((x) => x.id === id);
   if (!w) return;
@@ -863,9 +947,21 @@ function extract(notes, ids) {
 const words = (arr) => arr.join(" ").split(/\s+/).filter(Boolean).length;
 
 /* ---------- Chrome ---------- */
+/* Who is signed in, on every screen's bar: Google photo and first name. Opens Settings (account, sign out), except
+   during onboarding, where leaving would lose the step. */
+function meChip() {
+  if (!ME) return SIGNIN_READY ? '<button class="signin" type="button" data-act="signin">Sign in</button>' : "";
+  const ini = ME.name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const pic = ME.image ? `<img src="${esc(ME.image)}" alt="" referrerpolicy="no-referrer">` : `<span class="ini">${esc(ini)}</span>`;
+  const label = `Signed in as ${esc(ME.name)}${ME.email ? ` (${esc(ME.email)})` : ""}`;
+  const inner = `${pic}<span class="nm">${esc(ME.name.split(" ")[0])}</span>`;
+  return S.view === "onboard"
+    ? `<span class="me" title="${label}" aria-label="${label}">${inner}</span>`
+    : `<button class="me" type="button" data-nav="settings" title="${label}" aria-label="${label}. Open settings">${inner}</button>`;
+}
 function bar() {
-  if (S.view === "landing") return `<div class="brand">${ICON.logo}NetworkOS</div><button class="signin" type="button" data-act="start">Sign in</button>`;
-  if (S.view === "demo") return `<div class="brand">${ICON.logo}NetworkOS</div><span class="pill">Demo</span>`;
+  if (S.view === "landing") return `<div class="brand">${ICON.logo}NetworkOS</div>${ME ? `<button class="signin" type="button" data-act="start">Continue as ${esc(ME.name.split(" ")[0])}</button>` : '<button class="signin" type="button" data-act="signin">Sign in</button>'}`;
+  if (S.view === "demo") return `<div class="brand">${ICON.logo}NetworkOS</div><span class="pill">Demo</span>${meChip()}`;
   if (S.view === "person") return `<button class="back" type="button" data-nav="network" aria-label="Back to Network"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M15 5l-7 7 7 7"/></svg></button><b class="bttl">Network</b>`;
   if (S.view === "band") return `<button class="back" type="button" data-act="band-back" aria-label="Back to Agents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><path d="M15 5l-7 7 7 7"/></svg></button>
     <b class="bttl">Band Desktop</b>
@@ -875,7 +971,8 @@ function bar() {
   const pct = Math.max(0, Math.min(100, (S.credits / S.plan) * 100));
   return `<div class="brand">${ICON.logo}NetworkOS</div>
     <span class="pill ${working() ? "working" : ""}" title="Band room #sam-network"><span class="dot"></span>${working() ? "Working" : "Band"}</span>
-    <span class="pill ${S.credits < CREDITS_PER_PERSON ? "low" : ""}" title="Credits metered by Flexprice"><b>${S.credits}</b>credits<span class="meter"><i style="width:${pct}%"></i></span></span>`;
+    <span class="pill ${S.credits < CREDITS_PER_PERSON ? "low" : ""}" title="Credits metered by Flexprice"><b>${S.credits}</b>credits<span class="meter"><i style="width:${pct}%"></i></span></span>
+    ${meChip()}`;
 }
 function tabs() {
   const d = S.d;
@@ -923,7 +1020,10 @@ function viewSettings() {
   const pct = Math.max(0, Math.min(100, (S.credits / S.plan) * 100));
   const fresh_n = fresh().length;
   return `<div class="screen gut">
-    <section><span class="eyebrow">Sam${o.company.trim() ? ` · ${esc(o.company)}` : ""}</span><h1>Settings</h1></section>
+    <section><span class="eyebrow">${ME ? esc(ME.name) : "Sam"}${o.company.trim() ? ` · ${esc(o.company)}` : ""}</span><h1>Settings</h1></section>
+
+    <section><h2>Account</h2>
+      <div class="card set">${accountHTML()}</div></section>
 
     <section><h2>Weekly debrief</h2>
       <div class="card set">
@@ -1157,25 +1257,25 @@ function viewOnboard() {
   </div>`;
   if (o.phase === "scan") {
     const stages = [
-      [0, "Contacts found across 4 sources", 1847],
-      [1, "People after merging duplicates", 1212],
-      [1, "People you've actually talked to", 214],
-      [2, "Fit your goals right now", 38],
+      [0, `People you've talked to, across ${plural(o.sources.length, "account", "accounts")}`, found().length],
+      [1, "Met in the last 2 weeks", fresh().length],
+      [1, "Saved in Cognee memory", "cog"],
+      [2, "Fit your goals right now", fits()],
       [2, "Top picks to reach out to first", cands().length],
     ];
     const steps = scanSteps();
     return `<div class="screen gut">
       <section>${stepsBar(3, 5)}<span class="eyebrow">First scan</span>
         <h1>${o.i < 4 ? "Your agents are reading your network" : "Done. Here's what they found"}</h1>
-        <p class="lede">${o.i < 4 ? "This takes about a minute on a real account. You can watch every step in Band." : `${cands().length} people stand out. The 6 you met in the last 2 weeks are saved for your first debrief.`}</p></section>
-      <ul class="card funnel">${stages.map(([at, label, n], k) => `<li class="${o.i > at ? "" : "off"} ${k === 4 ? "top" : ""}"><span>${label}</span><b>${o.i > at ? num(n) : "—"}</b></li>`).join("")}</ul>
+        <p class="lede">${o.i < 4 ? "This takes about a minute on a real account. You can watch every step in Band." : `${cands().length} people stand out. The ${fresh().length} you met in the last 2 weeks are saved for your first debrief.`}</p></section>
+      <ul class="card funnel">${stages.map(([at, label, n], k) => `<li class="${o.i > at ? "" : "off"} ${k === 4 ? "top" : ""}"><span>${label}</span><b ${n === "cog" ? "data-cogn" : ""}>${o.i > at ? (n === "cog" ? cogCount() : num(n)) : "—"}</b></li>`).join("")}</ul>
       ${roomBlock("W-01", steps, o.i, o.i >= 4 ? "done" : "working")}
     </div>`;
   }
   if (o.phase === "review") {
     const groups = ["raise", "hire", "partners"].filter((g) => o.goals.includes(g)).map((g) => [g, cands().filter((p) => p.rec.goal === g).sort((a, b) => b.rec.score - a.rec.score)]).filter(([, l]) => l.length);
     return `<div class="screen gut">
-      <section>${stepsBar(4, 5)}<span class="eyebrow">Picked from ${num(1212)} people</span>
+      <section>${stepsBar(4, 5)}<span class="eyebrow">Picked from ${num(found().length)} people</span>
         <h1>Start with these ${cands().length} people</h1>
         <p class="lede">Ranked by fit with your goals and how warm the connection is. Uncheck anyone you'd rather not contact yet.</p></section>
       ${groups.map(([g, list]) => `<section class="cgroup"><h2>${GOALS[g]} <small>${plural(list.length, "person", "people")}</small></h2>
@@ -1250,10 +1350,10 @@ function startRegular() {
   S.credits -= SCAN_CREDITS + cands().length * CREDITS_PER_PERSON;
   AGENTS.forEach((a) => bill(a.name, 0, 2));
   [["Research", 34], ["Planner", 18], ["Strategy", 40], ["Outreach", 18]].forEach(([ag, n]) => bill(ag, n));
-  S.memStats = { people: 1212, facts: 4906 };
+  S.memStats = { people: found().length, facts: COG.nodes };
   S.board.push({ id: "W-01", title: "First network scan", col: "done", owner: "Strategy" });
-  logMem("add", "Research", `Imported ${num(1847)} contacts from 4 sources`);
-  logMem("cognify", "Planner", `Merged into ${num(1212)} people and ${num(4906)} facts`);
+  logMem("add", "Research", `Imported ${num(rawCount())} contacts from 4 sources`);
+  cogSeed(found());
   logMem("improve", "Planner", "Learned Sam's style from 200 sent emails: short, lead with a number");
   o.i = 4;
   o.picked = cands().map((p) => p.id);
@@ -1309,10 +1409,10 @@ function footOnboard() {
 function scanSteps() {
   const srcNames = SOURCES.filter((s) => S.onb.sources.includes(s.id)).map((s) => s.nm).join(", ");
   return [
-    { ag: "Research", body: `Imported ${num(1847)} contacts from ${esc(srcNames)}. <span class="at">@Planner</span> over to you.` },
-    { ag: "Planner", body: `Merged duplicates into ${num(1212)} people. ${num(214)} of them you've actually emailed, met or messaged. <span class="at">@Strategy</span>
-      <span class="wrote">add + cognify · ${num(1212)} people, ${num(4906)} facts, 1 relationship graph</span>` },
-    { ag: "Strategy", body: `Scored the ${num(214)} against your goals. ${cands().length} stand out, including warm ties that went quiet and one intro path. The 6 people you met in the last 2 weeks need your context, so they're saved for your first debrief. <span class="at">@Outreach</span>
+    { ag: "Research", body: `Imported ${num(rawCount())} contacts from ${esc(srcNames)}. <span class="at">@Planner</span> over to you.` },
+    { ag: "Planner", body: `Merged duplicates and dropped everyone you never talked to: ${num(found().length)} people you've actually emailed, met or messaged. <span class="at">@Strategy</span>
+      <span class="wrote" data-cog>${cogLine()}</span>` },
+    { ag: "Strategy", body: `Scored the ${num(found().length)} against your goals. ${cands().length} stand out, including warm ties that went quiet and one intro path. The ${fresh().length} people you met in the last 2 weeks need your context, so they're saved for your first debrief. <span class="at">@Outreach</span>
       <span class="recall">Goals: ${S.onb.goals.map((g) => GOALS[g]).join(" · ")}</span>` },
     { ag: "Outreach", body: `Learned your writing style from 200 sent emails and drafted a first message for each pick.
       <span class="wrote">improve · Sam writes short emails that lead with a number</span>` },
@@ -1332,8 +1432,8 @@ function scanTick() {
   const o = S.onb;
   const order = ["Research", "Planner", "Strategy", "Outreach"];
   bill(order[o.i], o.i === 0 ? 34 : o.i === 2 ? 40 : 18);
-  if (o.i === 0) logMem("add", "Research", `Imported ${num(1847)} contacts from ${o.sources.length} sources`);
-  if (o.i === 1) { logMem("cognify", "Planner", `Merged into ${num(1212)} people and ${num(4906)} facts`); S.memStats = { people: 1212, facts: 4906 }; }
+  if (o.i === 0) logMem("add", "Research", `Imported ${num(rawCount())} contacts from ${o.sources.length} sources`);
+  if (o.i === 1) { S.memStats = { people: found().length, facts: COG.nodes }; cogSeed(found()); }
   if (o.i === 2) logMem("search", "Strategy", `“who fits ${S.onb.goals.join(", ")} and is warm?” → ${cands().length} people`);
   if (o.i === 3) logMem("improve", "Planner", "Learned Sam's style from 200 sent emails: short, lead with a number");
   o.i++;
@@ -1473,8 +1573,13 @@ function send() {
   d.picked.forEach((id) => { if (d.ex[id].facts.length) logMem("add", "Planner", `${first(person(id))}: ${d.ex[id].facts.join(" ")}`); });
   logMem("cognify", "Planner", `Linked ${d.picked.map((id) => first(person(id))).join(", ")} to companies and goals`);
   if (skipped.length) logMem("add", "Planner", `Kept in memory, no outreach: ${skipped.map(first).join(", ")}`);
+  // The first person you picked also goes to the real agents: Planner → Research → Strategy → Outreach in Band, with Cognee.
+  const p0 = person(d.picked[0]);
+  const facts = d.ex[p0.id] && d.ex[p0.id].facts.length ? d.ex[p0.id].facts.join(" ") : p0.sample || "";
+  liveStart(`I met ${p0.name}, ${p0.role} at ${p0.co}${p0.when ? `, on ${p0.when}` : ""}. ${facts}`.trim());
   render(false);
   timer = setTimeout(tick, 1100);
+  toast(`Your real agents are on ${first(p0)} too. Watch it under Agents → Band.`);
 }
 function tick() {
   const d = S.d;
@@ -1588,7 +1693,7 @@ function viewMoves() {
   const h = new Date().getHours();
   const hello = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   return `<div class="screen gut">
-    <section class="greet"><span class="eyebrow">Tuesday, Oct 20</span><h1>${hello}, Sam</h1>
+    <section class="greet"><span class="eyebrow">Tuesday, Oct 20</span><h1>${hello}, ${ME ? esc(ME.name.split(" ")[0]) : "Sam"}</h1>
       <p class="lede">${top.length + needsCount() ? `${plural(top.length + needsCount(), "thing needs", "things need")} you today` : "Nothing urgent today"}${dueOwe.length ? `, including ${plural(dueOwe.length, "promise", "promises")} coming due` : ""}. Ask your agents anything below.</p></section>
     ${needsYouHTML()}
     <section class="card askcard">
@@ -1616,43 +1721,80 @@ function newRound() {
   S.d = { phase: "pick", picked: [], notes: "", ex: S.d.ex, gap: null, gapAnswer: null, i: 0, items: {}, round: [] };
   moveItem("W-11", "todo", "Planner", "Debrief: new contacts");
 }
-function addContact() {
-  const a = S.net.add;
-  const name = a.name.trim().replace(/\s+/g, " ");
-  if (!name) return;
+/* ---------- CSV import ---------- */
+function parseCSV(text) {
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((x) => x.trim()));
+}
+const CSV_COLS = { name: /^(full )?name$/, role: /^(role|title|job title|position)$/, co: /^(company|organization|organisation|org)$/,
+  where: /^(where[ _]?met|where|met|event|how we met)$/, email: /^e-?mail$/, notes: /^(notes?|context|what we discussed)$/ };
+function csvPeople(text) {
+  const rows = parseCSV(text.replace(/^﻿/, ""));
+  if (rows.length < 2) throw new Error("The file has no rows under its header.");
+  const head = rows[0].map((h) => h.trim().toLowerCase());
+  const col = Object.fromEntries(Object.entries(CSV_COLS).map(([k, re]) => [k, head.findIndex((h) => re.test(h))]));
+  if (col.name < 0) throw new Error("The file needs a “name” column.");
+  return rows.slice(1).map((r) => Object.fromEntries(Object.entries(col).map(([k, i]) => [k, i < 0 ? "" : (r[i] || "").trim()]))).filter((p) => p.name);
+}
+function contactFrom({ name, role, co, where, email, notes }) {
+  name = name.replace(/\s+/g, " ");
   const parts = name.split(" ");
   const fn = parts[0];
-  const role = a.role.trim() || "Contact";
-  const co = a.co.trim() || "Independent";
-  const where = a.where.trim();
+  role = role || "Contact"; co = co || "Independent";
   const txt = `${role} ${co}`.toLowerCase();
-  const goal = /invest|vc\b|angel|capital|ventures|fund/.test(txt) ? "raise" : /engineer|developer|cto|designer|recruit/.test(txt) ? "hire" : "partners";
+  const goal = /invest|vc\b|angel|capital|ventures|fund|partner at|scout|principal|associate/.test(txt) ? "raise" : /engineer|developer|cto|designer|recruit/.test(txt) ? "hire" : "partners";
   const help = goal === "raise" ? "Could help with the raise." : goal === "hire" ? "Could help with the hire." : "Could become a design partner or customer.";
-  S.people.push({ id: "u" + Date.now().toString(36), fresh: true, added: true, name, ini: (fn[0] + (parts[1] ? parts[1][0] : "")).toUpperCase(),
-    av: ["a", "b", "c", "d", "e"][S.people.length % 5], role, co, key: co, when: "Oct 20", src: "Added by you",
-    sample: `${fn} from ${co} and I talked${where ? ` at ${where}` : ""} about working together, and I said I'd follow up next week.`,
-    rec: { score: 6, goal, why: `You added ${fn} yourself${where ? ` after ${where}` : ""}. ${help}`, action: "Send a short follow-up",
-      research: `${co}: profile and recent news pulled`, memo: "Added by Sam today",
-      draft: `Hi ${fn},\n\nGreat meeting you${where ? ` at ${where}` : ""}. I'd love to keep the conversation going. Do you have 20 minutes next week?\n\nSam` } });
-  S.memStats.people += 1;
-  logMem("add", "Planner", `New contact from Sam: ${name}, ${role} at ${co}${where ? ` (met: ${where})` : ""}`);
-  if (S.d.phase === "done") newRound();
-  S.net.add = { name: "", role: "", co: "", where: "" };
+  const score = NEGATIVE_RE.test(notes) ? 3 : Math.min(9, 6 + (PROMISE_RE.test(notes) ? 2 : 0) + (OFFER_RE.test(notes) ? 1 : 0));
+  const when = (where.match(/\(([A-Z][a-z]{2} \d{1,2})\)/) || [])[1] || "Oct 20";
+  const met = where.replace(/\s*\([^)]*\)\s*$/, "");
+  return { id: "u" + Math.random().toString(36).slice(2, 9), fresh: true, added: true, name, ini: (fn[0] + (parts[1] ? parts[1][0] : "")).toUpperCase(),
+    av: ["a", "b", "c", "d", "e"][S.people.length % 5], role, co, key: co, when, src: "CSV import", email, signal: met ? `Met at ${met}` : "Imported from CSV",
+    sample: notes || `${fn} from ${co} and I talked${met ? ` at ${met}` : ""} about working together, and I said I'd follow up next week.`,
+    rec: { score, goal, why: notes ? `${notes} ${help}` : `Imported from your CSV${met ? `, met at ${met}` : ""}. ${help}`, action: "Send a short follow-up",
+      research: `${co}: profile and recent news pulled`, memo: `Imported by Sam${met ? ` · met at ${met}` : ""}`,
+      draft: `Hi ${fn},\n\nGreat meeting you${met ? ` at ${met}` : ""}. I'd love to keep the conversation going. Do you have 20 minutes next week?\n\nSam` } };
+}
+async function readCSV(file) {
+  try {
+    const people = csvPeople(await file.text());
+    const known = new Set(S.people.filter((p) => !p.forgotten).map((p) => p.name.toLowerCase()));
+    const fresh = people.filter((p) => !known.has(p.name.replace(/\s+/g, " ").toLowerCase()));
+    S.net.csv = { file: file.name, people: fresh, dups: people.length - fresh.length, error: "" };
+  } catch (e) { S.net.csv = { file: file.name, people: [], dups: 0, error: e.message || "Couldn't read that file." }; }
   render();
-  $("add-name")?.focus();
-  toast(`${name} added. Tell your agents about ${fn} in the debrief.`);
+}
+function importCSV() {
+  const c = S.net.csv;
+  if (!c || !c.people.length) return;
+  const added = c.people.map(contactFrom);
+  S.people.push(...added);
+  logMem("add", "Planner", `Imported ${plural(added.length, "contact", "contacts")} from ${c.file}`);
+  cogSeed(added);
+  if (S.d.phase === "done") newRound();
+  S.net.csv = null; S.net.adding = false; S.net.filter = "recent";
+  render();
+  toast(`${plural(added.length, "contact", "contacts")} imported. Saving to Cognee; tell your agents about them in the debrief.`);
 }
 function connectMore(id) {
   const s = SOURCES.find((x) => x.id === id);
   if (!s || S.onb.sources.includes(id)) return;
   S.onb.sources.push(id);
-  const n = NEW_SOURCE_PEOPLE[id] || 50;
-  S.memStats.people += n;
+  const added = S.people.filter((p) => p.from === id && !p.forgotten && (p.cand || p.extra));
+  const n = added.length;
   bill("Research", 6);
-  logMem("add", "Research", `Connected ${s.nm}: ${n} people not already in memory`);
-  logMem("cognify", "Planner", `Merged ${s.nm} contacts into the graph`);
+  logMem("add", "Research", `Connected ${s.nm}: ${plural(n, "person", "people")} not already in memory`);
+  cogSeed(added);
   render();
-  toast(`${s.nm} connected. ${n} new people added to memory.`);
+  toast(`${s.nm} connected. ${plural(n, "new person", "new people")} added to memory.`);
 }
 
 /* ---------- Network ---------- */
@@ -1671,11 +1813,12 @@ function netStatus(p) {
     if (inRun || !p.debriefed) return { key: "recent", cls: "info", label: inRun ? "Agents working" : "Needs debrief", what: `Met ${p.when} · ${p.src === "Added by you" ? "added by you" : `found in ${p.src}`}` };
     return { key: "hold", cls: "skipped", label: "Not now", what: `Met ${p.when}. You chose not to follow up.` };
   }
+  if (p.extra) return { key: "hold", cls: "skipped", label: "In memory", what: `${p.src} · ${p.signal}` };
   return { key: "hold", cls: "skipped", label: "Not now", what: `Found: ${p.signal}` };
 }
 function netPeople() {
   const order = { waiting: 0, recent: 1, done: 2, hold: 3 };
-  return S.people.filter((p) => (p.cand || p.fresh) && !p.forgotten).map((p) => ({ p, st: netStatus(p) }))
+  return found().map((p) => ({ p, st: netStatus(p) }))
     .sort((a, b) => order[a.st.key] - order[b.st.key] || b.p.rec.score - a.p.rec.score);
 }
 function netListHTML() {
@@ -1699,7 +1842,7 @@ const LAST_TOUCH = { alex: "Email · Sep 24", ravi: "Email · Mar 2024", hana: "
 function socialsOf(p) {
   const slug = p.name.toLowerCase().replace(/[^a-z ]/g, "").replace(/ /g, "");
   const dom = p.co.toLowerCase().replace(/^ex-/, "").replace(/[^a-z]/g, "") || "mail";
-  return [["in", "LinkedIn", `linkedin.com/in/${slug}`], ["𝕏", "X", `x.com/${slug}`], ["@", "Email", `${first(p).toLowerCase()}@${dom}.example`]];
+  return [["in", "LinkedIn", `linkedin.com/in/${slug}`], ["𝕏", "X", `x.com/${slug}`], ["@", "Email", p.email || `${first(p).toLowerCase()}@${dom}.example`]];
 }
 function connectionOf(p) {
   if (p.kind) return p.kind;
@@ -1715,8 +1858,8 @@ function viewPerson() {
   const found = [p.signal, p.rec.research, p.rec.memo].filter(Boolean);
   const prom = S.promises.filter((x) => x.pid === p.id);
   const via = p.via ? person(p.via) : null;
-  const source = p.cand ? "Network scan (LinkedIn, Calendar, Gmail, Contacts)" : p.added ? "Added by you" : `${p.src}`;
-  const last = LAST_TOUCH[p.id] || `${p.when} · ${p.src}`;
+  const source = p.cand || p.extra ? `Network scan · ${SRC_NAME[p.from]}` : p.added ? p.src || "Added by you" : `${p.src}`;
+  const last = LAST_TOUCH[p.id] || (p.extra ? p.signal : `${p.when} · ${p.src}`);
   return `<div class="screen gut">
     <section class="card phero">
       ${via ? `<span class="duo big"><span class="av ${via.av}">${via.ini}</span><span class="av ${p.av}">${p.ini}</span></span>` : `<span class="av xl ${p.av}">${p.ini}</span>`}
@@ -1763,30 +1906,31 @@ function viewPerson() {
 
 function viewNetwork() {
   const { rows, counts, shown } = netListHTML();
-  const a = S.net.add;
+  const c = S.net.csv;
   const missing = SOURCES.filter((s) => !S.onb.sources.includes(s.id));
   return `<div class="screen gut">
     <section><span class="eyebrow">Everyone you're connected with</span><h1>Network</h1>
       <p class="lede">Every person your agents track, and what's happening with each one. Tap anyone to see what they know.</p></section>
     ${S.net.adding ? `<section class="card addbox">
-      <div class="addhead"><b>Add contacts</b><button class="textbtn" type="button" data-act="add-close">Done</button></div>
-      <form class="addform" id="add-form">
-        <label class="field"><span class="label">Name</span><input id="add-name" type="text" autocomplete="off" value="${esc(a.name)}" placeholder="Maya Brooks" required></label>
-        <div class="addrow"><label class="field"><span class="label">Role</span><input id="add-role" type="text" autocomplete="off" value="${esc(a.role)}" placeholder="Partner"></label>
-          <label class="field"><span class="label">Company</span><input id="add-co" type="text" autocomplete="off" value="${esc(a.co)}" placeholder="Harbor Ventures"></label></div>
-        <label class="field"><span class="label">Where you met</span><input id="add-where" type="text" autocomplete="off" value="${esc(a.where)}" placeholder="Demo day, coffee, intro from Alex…"></label>
-        <button class="btn block" type="submit" id="add-submit" ${a.name.trim() ? "" : "disabled"}>Add to network</button>
-        <span class="note">New people go into memory and show up in your next debrief, where you tell the agents what you know.</span>
-      </form>
+      <div class="addhead"><b>Import contacts</b><button class="textbtn" type="button" data-act="add-close">Done</button></div>
+      <div class="addform">
+        <label class="drop" for="csv-file"><b>${c ? esc(c.file) : "Choose a CSV file"}</b><span>${c ? "Choose another file" : "One person per row. Columns: name, role, company, where_met, email, notes."}</span></label>
+        <input id="csv-file" type="file" accept=".csv,text/csv" class="sr">
+        ${c && c.error ? `<p class="note err">${esc(c.error)}</p>` : ""}
+        ${c && !c.error ? `<div class="csvprev"><span class="label">${plural(c.people.length, "new person", "new people")}${c.dups ? ` · ${c.dups} already in your network` : ""}</span>
+          <ul>${c.people.slice(0, 5).map((p) => `<li><b>${esc(p.name)}</b> · ${esc(p.role || "Contact")}${p.co ? `, ${esc(p.co)}` : ""}</li>`).join("")}${c.people.length > 5 ? `<li>and ${c.people.length - 5} more</li>` : ""}</ul></div>
+          <button class="btn block" type="button" data-act="csv-import" ${c.people.length ? "" : "disabled"}>Import ${plural(c.people.length, "contact", "contacts")}</button>` : ""}
+        <span class="note">Imported people go into Cognee memory and show up in your next debrief, where you tell the agents what you know. <a class="linkish" href="/demo/networkos-contacts.csv" download>Download a sample CSV</a></span>
+      </div>
       <div class="addsrc"><span class="label">Or connect more accounts</span>
         ${missing.length ? `<ul class="srcs">${missing.map((s) => `<li><span class="logo">${s.l}</span><div class="txt"><div class="nm">${s.nm}</div><div class="rl">${s.rl}</div></div><button class="btn sm quiet" type="button" data-src2="${s.id}">Connect</button></li>`).join("")}</ul>`
           : `<p class="note" style="text-align:left;margin:0">All 4 accounts are connected. Your agents check them for new people every day.</p>`}
       </div></section>`
-      : `<button class="btn block quiet" type="button" data-act="add-open">+ Add contacts</button>`}
+      : `<button class="btn block quiet" type="button" data-act="add-open">+ Import contacts (CSV)</button>`}
     <input class="search" id="net-q" type="search" placeholder="Search people or companies" aria-label="Search your network" value="${esc(S.net.q)}" autocomplete="off">
     <div class="chips-row filters" id="net-filters" aria-label="Filter">${NET_FILTERS.map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${S.net.filter === k}">${l}<small>${counts[k]}</small></button>`).join("")}</div>
     <ul class="card netlist" id="netlist">${rows}</ul>
-    <p class="fine"><span>Showing the ${shown} people your agents rank highest. ${num(Math.max(0, S.memStats.people - shown))} more are in memory and resurface when they become relevant.</span></p>
+    <p class="fine"><span>${plural(shown, "person", "people")} from ${esc(S.onb.sources.map((id) => SRC_NAME[id]).join(", ") || "no accounts yet")} and your meetings. Cognee: <span data-cog>${cogLine()}</span></span></p>
   </div>`;
 }
 function renderNetList() {
@@ -1876,6 +2020,26 @@ function networkContext() {
   const waiting = S.d.phase === "pick" || S.d.phase === "tell" ? `Not debriefed yet (met in the last 2 weeks): ${fresh().map((p) => `${p.name} (${p.role}, ${p.co})`).join("; ")}` : "";
   return `Company: ${S.onb.company.trim() || "not given"}\nGoals: ${S.onb.goals.map((g) => GOALS[g]).join("; ")}\nMemory: ${S.memStats.people} people, ${S.memStats.facts} facts.\nOpen next moves:\n${open.join("\n") || "none"}\nPromises:\n${prom.join("\n") || "none"}\nHandled:\n${done.join("\n") || "none"}\n${waiting}`;
 }
+async function liveAsk(q) {
+  try {
+    const { run_id } = await liveJSON("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: q }) });
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const r = await liveJSON(`/api/demo?run=${encodeURIComponent(run_id)}`);
+      if (r.status === "running") continue;
+      if (r.answer) return r.answer;
+      if (r.status === "waiting") {
+        LIVE.run = r; LIVE.status = "running";
+        const why = (r.notes && r.notes[2] || []).filter(Boolean).join(". ");
+        return `Got it. ${why ? why + ". " : ""}Outreach drafted “${r.draft_subject || "a follow-up"}”. It's waiting for your approval on the Band screen under Agents.`;
+      }
+      return r.error || "The agents couldn't finish that one. Ask again?";
+    }
+    return "The agents are still working on that. Check the Band screen under Agents.";
+  } catch (e) {
+    return `${localAnswer(q)} (Your agents are offline, so this answer is from the page: ${e.message})`;
+  }
+}
 function localAnswer(q) {
   const open = openNext().filter((n) => goalOf(recOf(n)) !== "warm").map((n) => person(n.personId)).sort((a, b) => b.rec.score - a.rec.score);
   const named = S.people.find((p) => new RegExp(`\\b${reEsc(first(p))}\\b`, "i").test(q));
@@ -1934,8 +2098,7 @@ ${networkContext()}`;
       else m.text = (e.text ? e.text + "\n\n" : "") + "I lost the connection. Ask again?";
     }
   } else {
-    await new Promise((r) => setTimeout(r, 700));
-    m.text = localAnswer(text);
+    m.text = await liveAsk(text);
   }
   m.pending = false;
   c.busy = false;
@@ -1990,7 +2153,7 @@ function viewAgents() {
     <section><h2>Plan <small>posted by Planner</small></h2>
       <div class="card plan"><span class="label">Week of Oct 20</span><ol>
         <li>Get Sam's approval on first messages to the top picks from the scan.</li>
-        <li>Run Sam's first weekly debrief on the 6 people met since Oct 6.</li>
+        <li>Run Sam's first weekly debrief on the ${fresh().length} people met since Oct 6.</li>
         <li>Research, map to the raise, the hire and design partners, and draft follow-ups for approval.</li></ol></div></section>
     <section><h2>Board <small>swipe →</small></h2>
       <div class="lanes">${lanes.map(([k, label]) => {
@@ -2286,6 +2449,96 @@ function viewBand() {
 }
 
 
+
+/* ---------- Cognee: the network kept for real ----------
+   Every person found goes to the agents service, which saves them as contacts and as notes in Cognee and builds the
+   graph. The counts shown are what Cognee reports back. */
+const COG = { people: null, documents: 0, nodes: 0, edges: 0, building: false, dataset: "", error: "", sending: false, poll: null, built: false };
+function seedPayload(list) {
+  return list.map((p) => ({ name: p.name, role: p.role || "", company: p.co || "", signal: p.signal || (p.when ? `Met ${p.when}` : ""),
+    why: p.rec.why || "", next_action: p.rec.action || "", status: (p.kind && p.kind[1]) || (p.fresh ? "Met recently" : ""),
+    mutual: p.via ? person(p.via).name : "", i_promised: p.promise && p.promise.owe ? p.promise.owe : "", score: p.rec.score || 0, tags: [p.rec.goal] }));
+}
+function cogApply(d) {
+  Object.assign(COG, { people: d.people, documents: d.documents, nodes: d.nodes, edges: d.edges, building: d.building, dataset: d.dataset, cloud: d.cloud || null, error: "" });
+  S.memStats = { people: d.people, facts: d.nodes };
+}
+async function cogSeed(list) {
+  if (!list.length) return;
+  COG.sending = true; cogRender();
+  try {
+    const d = await liveJSON("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ seed: seedPayload(list) }) });
+    cogApply(d);
+    COG.built = false;
+    logMem("add", "Planner", `Cognee: ${plural(d.added, "new person", "new people")} saved${d.already_known ? `, ${d.already_known} already known` : ""} (${d.dataset})`);
+    cogPoll();
+  } catch (e) { COG.error = e.message; }
+  COG.sending = false; cogRender();
+}
+async function cogStats() {
+  try { cogApply(await liveJSON("/api/demo?memory=1")); } catch (e) { COG.error = e.message; }
+  cogRender();
+}
+function cogPoll() {
+  clearTimeout(COG.poll);
+  COG.poll = setTimeout(async () => {
+    await cogStats();
+    if (COG.building) return cogPoll();
+    if (!COG.built && !COG.error) {
+      COG.built = true;
+      logMem("cognify", "Planner", `Cognee graph built: ${num(COG.nodes)} nodes, ${num(COG.edges)} edges from ${plural(COG.documents, "note", "notes")}`);
+      if (COG.cloud && COG.cloud.state === "pushed") logMem("push", "Planner", `Copied to Cognee Cloud as ${COG.cloud.dataset}`);
+    }
+  }, 4000);
+}
+async function cogFlush() {
+  const notes = cogQueue.splice(0);
+  if (!notes.length) return;
+  try {
+    cogApply(await liveJSON("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notes }) }));
+    COG.built = false; cogPoll();
+  } catch (e) { COG.error = e.message; }
+  cogRender();
+}
+const cogCount = () => (COG.people == null ? "…" : num(COG.people));
+function cogLine() {
+  if (COG.error) return `Cognee unreachable: ${COG.error}`;
+  if (COG.sending) return "add · saving people to Cognee…";
+  if (COG.people == null) return "add + cognify · waiting for Cognee";
+  const cl = COG.cloud && COG.cloud.enabled ? (COG.cloud.state === "pushed" ? ` · in Cognee Cloud as ${COG.cloud.dataset}` : COG.cloud.state === "pushing" ? " · copying to Cognee Cloud…" : COG.cloud.state === "failed" ? " · Cognee Cloud copy failed" : "") : "";
+  return `add + cognify · ${plural(COG.people, "person", "people")} · ${COG.building ? "building the graph…" : `${num(COG.nodes)} nodes, ${num(COG.edges)} edges`}${cl}`;
+}
+function cogRender() {
+  document.querySelectorAll("[data-cog]").forEach((el) => (el.textContent = cogLine()));
+  document.querySelectorAll("[data-cogn]").forEach((el) => (el.textContent = cogCount()));
+}
+
+/* ---------- Account: real Google sign-in ---------- */
+let ME = null, SIGNIN_READY = false;
+async function loadMe() {
+  try { const d = await liveJSON("/api/me"); ME = d.user; SIGNIN_READY = d.signInReady; } catch { ME = null; }
+  const q = new URLSearchParams(location.search);
+  if (q.has("start")) {
+    history.replaceState(null, "", location.pathname);
+    if (ME) { go("onboard"); toast(`Signed in as ${ME.name}`); return; }
+  }
+  render();
+}
+function signIn() { location.href = "/signin?next=" + encodeURIComponent("/?start=1"); }
+function signOut() {
+  const f = document.createElement("form");
+  f.method = "post"; f.action = "/api/signout";
+  document.body.appendChild(f); f.submit();
+}
+function accountHTML() {
+  if (ME) return `<div class="set-row"><div class="txt"><b>${esc(ME.name)}</b><span>${esc(ME.email)} · signed in with Google</span></div>
+      <button class="btn sm quiet" type="button" data-act="signout">Sign out</button></div>
+    <div class="set-row"><div class="txt"><b>Your memory</b><span>Live runs and Cognee use your account. <span data-cog>${cogLine()}</span></span></div>
+      <a class="btn sm quiet" href="/home">Dashboard</a></div>`;
+  return `<div class="set-row"><div class="txt"><b>Not signed in</b><span>You're using the shared demo memory. Sign in to keep your own.</span></div>
+      <button class="btn sm" type="button" data-act="signin">Sign in with Google</button></div>`;
+}
+
 /* ---------- Live: the same note, run by the real agents ----------
    The people and numbers on this page are mock data. Pressing Run also sends the note to the agents service
    (/api/demo): the Planner opens a Band room and hands off to Research, Strategy and Outreach, Cognee recalls what it
@@ -2473,7 +2726,9 @@ document.addEventListener("click", (e) => {
   }
   else if (ds.src) { o.sources = [...o.sources, ds.src]; render(); }
   else if (ds.cand) { o.picked = toggle(o.picked, ds.cand); render(); }
-  else if (ds.act === "start") go("onboard");
+  else if (ds.act === "start") { if (!ME && SIGNIN_READY) signIn(); else go("onboard"); }
+  else if (ds.act === "signin") signIn();
+  else if (ds.act === "signout") signOut();
   else if (ds.act === "mic") toggleMic();
   else if (ds.dictate) dictate(ds.dictate);
   else if (ds.social) {
@@ -2521,7 +2776,8 @@ document.addEventListener("click", (e) => {
   }
   else if (ds.bstep) { const it = B.items.find((i) => i.id === ds.bstep); const last = [...B.items].reverse().find((i) => i.type === "step"); B.open[ds.bstep] = !(B.open[ds.bstep] ?? it.id === last.id); render(); }
   else if (ds.btask) { const cur = B.tasks[ds.btask]; B.tasks[ds.btask] = TASK_ORDER[(TASK_ORDER.indexOf(cur) + 1) % TASK_ORDER.length]; render(); }
-  else if (ds.act === "add-open") { S.net.adding = true; render(); $("add-name")?.focus(); }
+  else if (ds.act === "add-open") { S.net.adding = true; render(); }
+  else if (ds.act === "csv-import") importCSV();
   else if (ds.act === "add-close") { S.net.adding = false; render(); }
   else if (ds.src2) connectMore(ds.src2);
   else if (ds.act === "new-round") { newRound(); render(false); }
@@ -2577,8 +2833,8 @@ document.addEventListener("click", (e) => {
   else if (b.id === "reset") { clearTimeout(timer); clearInterval(listenTimer); chatCtl?.abort(); try { speechSynthesis.cancel(); } catch {} S = SEED(); B = bandFresh(); render(false); toast("Demo restarted"); }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.chat.open) closeSheet(); });
+document.addEventListener("change", (e) => { if (e.target.id === "csv-file" && e.target.files[0]) readCSV(e.target.files[0]); });
 document.addEventListener("submit", (e) => {
-  if (e.target.id === "add-form") { e.preventDefault(); addContact(); return; }
   if (e.target.id !== "chat-form") return;
   e.preventDefault();
   ask($("chat-in").value);
@@ -2588,10 +2844,6 @@ document.addEventListener("input", (e) => {
   if (t.id === "company") S.onb.company = t.value;
   if (t.id === "chat-in") S.chat.draft = t.value;
   if (t.id === "net-q") { S.net.q = t.value; renderNetList(); }
-  if (t.id && t.id.startsWith("add-") && t.id !== "add-submit") {
-    S.net.add[t.id.slice(4).replace("name", "name")] = t.value;
-    const b = $("add-submit"); if (b) b.disabled = !S.net.add.name.trim();
-  }
   if (t.id === "onb-notes") { S.onb.notes = t.value; const b = $("build"); if (b) b.disabled = !t.value.trim(); }
   if (t.id === "notes") { S.d.notes = t.value; const s = $("send"); if (s) s.disabled = !t.value.trim(); }
   if (t.dataset && t.dataset.draft) S.next.find((x) => x.id === t.dataset.draft).pending = t.value;
@@ -2599,6 +2851,8 @@ document.addEventListener("input", (e) => {
 
 render(false);
 liveHealth();
+loadMe();
+cogStats();
 </script>
 
 </body></html>

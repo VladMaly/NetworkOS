@@ -36,5 +36,10 @@ for key, value in {
 }.items():
     os.environ.setdefault(key, value)
 
+# Cognee Cloud (optional): after each graph build the user's graph is pushed there, so it shows up in the Cognee web app.
+# Own names on purpose: Cognee's COGNEE_SERVICE_URL / COGNEE_API_KEY would send all memory calls to the cloud instead.
+CLOUD_URL = os.environ.get("NETWORKOS_COGNEE_CLOUD_URL", "").strip().strip('"').rstrip("/")
+CLOUD_KEY = os.environ.get("NETWORKOS_COGNEE_CLOUD_KEY", "").strip().strip('"')
+
 # DeepSeek V4.1 Flash prices on OpenRouter, per million tokens, for the dashboard's Tokens / Cost tab.
 PRICE_IN, PRICE_OUT = 0.028, 0.12

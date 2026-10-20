@@ -8,6 +8,7 @@ import logging
 import re
 
 from . import config  # noqa: F401  (sets Cognee's storage paths before cognee is imported)
+from datetime import datetime, timezone
 import cognee
 from cognee import SearchType
 
@@ -15,6 +16,7 @@ log = logging.getLogger("relationshipos.memory")
 
 _write = asyncio.Lock()
 _pending: dict[str, asyncio.Task[None]] = {}
+_cloud: dict[str, dict[str, object]] = {}  # user → last push to Cognee Cloud
 
 
 def dataset(user_id: str) -> str:
@@ -30,6 +32,28 @@ async def _cognify(user_id: str) -> None:
             await cognee.cognify(datasets=[dataset(user_id)])
     except Exception:
         log.exception("cognify failed for %s", dataset(user_id))
+        return
+    await push_cloud(user_id)
+
+
+def cloud_dataset(user_id: str) -> str:
+    return "networkos_" + re.sub(r"[^A-Za-z0-9_]", "_", user_id).removeprefix("networkos_")
+
+
+async def push_cloud(user_id: str) -> None:
+    """Copy the user's graph to Cognee Cloud (no LLM calls there), so it shows up in the Cognee web app."""
+    if not (config.CLOUD_URL and config.CLOUD_KEY):
+        return
+    state = _cloud.setdefault(user_id, {})
+    state.update(state="pushing", error="")
+    try:
+        async with _write:
+            res = await cognee.push(dataset(user_id), target_dataset=cloud_dataset(user_id), mode="preserve", url=config.CLOUD_URL, api_key=config.CLOUD_KEY)
+        state.update(state="pushed", at=datetime.now(timezone.utc).isoformat(timespec="seconds"), result=str(res)[:300])
+        log.info("pushed %s to Cognee Cloud as %s", dataset(user_id), cloud_dataset(user_id))
+    except Exception as e:
+        log.exception("push to Cognee Cloud failed for %s", dataset(user_id))
+        state.update(state="failed", error=f"{type(e).__name__}: {e}"[:300])
 
 
 async def remember(user_id: str, text: str) -> None:
@@ -78,7 +102,8 @@ async def remember_many(user_id: str, texts: list[str]) -> None:
 async def stats(user_id: str) -> dict[str, object]:
     """What Cognee holds for this user: documents, the graph's size, and whether a graph build is running."""
     task = _pending.get(user_id)
-    out: dict[str, object] = {"dataset": dataset(user_id), "documents": 0, "nodes": 0, "edges": 0, "building": bool(task and not task.done())}
+    out: dict[str, object] = {"dataset": dataset(user_id), "documents": 0, "nodes": 0, "edges": 0, "building": bool(task and not task.done()),
+                              "cloud": {"enabled": bool(config.CLOUD_URL and config.CLOUD_KEY), "dataset": cloud_dataset(user_id), **_cloud.get(user_id, {})}}
     try:
         ds = next((d for d in await cognee.datasets.list_datasets() if d.name == dataset(user_id)), None)
         if ds is None:

@@ -241,7 +241,7 @@ class SeedPerson(BaseModel):
 
 
 class SeedIn(BaseModel):
-    people: list[SeedPerson]
+    people: list[SeedPerson]  # up to 200 a call
 
 
 def _person_note(p: SeedPerson) -> str:
@@ -256,7 +256,7 @@ def _person_note(p: SeedPerson) -> str:
 async def seed_memory(body: SeedIn, uid: Uid) -> dict[str, Any]:
     """Load a network in one go: each new person becomes a contact and a note in Cognee, then one graph build."""
     _user(uid)
-    people = [p for p in body.people[:60] if p.name.strip()]
+    people = [p for p in body.people[:200] if p.name.strip()]
     with session() as s:
         known = {c.name.lower() for c in s.exec(select(Contact).where(Contact.user_id == uid)).all()}
         fresh = [p for p in people if p.name.strip().lower() not in known]
@@ -275,3 +275,24 @@ async def memory_stats(uid: Uid) -> dict[str, Any]:
     with session() as s:
         people = len(s.exec(select(Contact.id).where(Contact.user_id == uid)).all())
     return {"people": people, **await memory.stats(uid)}
+
+
+class NotesIn(BaseModel):
+    notes: list[str]
+
+
+@app.post("/memory/notes")
+async def add_notes(body: NotesIn, uid: Uid) -> dict[str, Any]:
+    """Keep what happened (an approval, a debrief note, a note on a person) in Cognee; one graph build for the batch."""
+    _user(uid)
+    notes = [n.strip()[:2000] for n in body.notes[:50] if n.strip()]
+    await memory.remember_many(uid, notes)
+    return {"saved": len(notes), **await memory_stats(uid)}
+
+
+@app.post("/memory/push")
+async def push_memory(uid: Uid) -> dict[str, Any]:
+    """Copy this user's Cognee graph to Cognee Cloud now (it also happens after every graph build)."""
+    _user(uid)
+    await memory.push_cloud(uid)
+    return await memory_stats(uid)

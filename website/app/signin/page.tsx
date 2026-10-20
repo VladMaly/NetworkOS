@@ -6,7 +6,7 @@ import { currentUser } from "../lib/session"
 import { NetMark } from "../home/icons"
 import "../home/network-os.css"
 
-export const metadata: Metadata = { title: "Sign in · RelationshipOS" }
+export const metadata: Metadata = { title: "Sign in · NetworkOS" }
 
 /* Where to go after signing in: a path on this site (?next=/…), the dashboard otherwise. */
 const safeNext = (next: string | undefined) => (next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/home")
@@ -27,7 +27,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
       <main className="nx-signin">
         <div className="nx-signin-card ly-pane">
           <NetMark size={52} />
-          <h1>RelationshipOS</h1>
+          <h1>NetworkOS</h1>
           <p>Your AI relationship team. It remembers everyone you meet and tells you what to do next.</p>
           {authConfigured ? (
             <form action={google}>

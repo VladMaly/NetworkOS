@@ -1,0 +1,10 @@
+/* The sign-in page: one pane of the landing page's frost glass (.ly-pane, .os-btn and .os-page come from globals.css). */
+.nx h1, .nx p { margin: 0; }
+.nx-fine { font-size: 12.5px; line-height: 1.5; color: var(--faint); }
+.nx-status { padding: 10px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; color: var(--mid); background: rgba(255,255,255,0.55); }
+.nx-signin { position: relative; z-index: 2; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+.nx-signin-card { width: min(400px, 100%); padding: 32px 28px; display: grid; gap: 14px; justify-items: center; text-align: center; }
+.nx-signin-card h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.03em; }
+.nx-signin-card > p:not(.nx-fine):not(.nx-status) { font-size: 14.5px; line-height: 1.55; color: var(--dim); }
+.nx-signin-card form { width: 100%; }
+.nx-signin-card .os-btn { margin-top: 6px; }

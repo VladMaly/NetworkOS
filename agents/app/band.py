@@ -106,6 +106,15 @@ def handoff(run: Run, frm: str, to: str, what: str) -> None:
     _chain[run.id] = asyncio.create_task(_post(run.id, frm, to, f"{what}", _chain.get(run.id)))
 
 
+def approved(run: Run, what: str) -> None:
+    """The founder approved the draft: Outreach says so in the run's room, and the Planner that memory has it."""
+    if not enabled():
+        return
+    start(run, run.request[:80])  # the room, or a new one if this service restarted since the run
+    _chain[run.id] = asyncio.create_task(_post(run.id, "Outreach", "You", f"Approved: {what}", _chain.get(run.id)))
+    _chain[run.id] = asyncio.create_task(_post(run.id, "Planner", "You", "Saved the outcome to Cognee memory.", _chain.get(run.id)))
+
+
 def finish(run: Run, summary: str) -> None:
     """The last word in the room, to the founder: what's waiting for them."""
     if enabled() and run.id in _rooms:

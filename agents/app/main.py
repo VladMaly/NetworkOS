@@ -296,3 +296,17 @@ async def push_memory(uid: Uid) -> dict[str, Any]:
     _user(uid)
     await memory.push_cloud(uid)
     return await memory_stats(uid)
+
+
+@app.delete("/memory")
+async def forget_everything(uid: Uid) -> dict[str, Any]:
+    """FORGET everything for this user: contacts, runs and interactions here, and their Cognee dataset."""
+    with session() as s:
+        n = 0
+        for model in (Interaction, Run, Contact):
+            for row in s.exec(select(model).where(model.user_id == uid)).all():
+                s.delete(row)
+                n += 1
+        s.commit()
+    emptied = await memory.forget_all(uid)
+    return {"deleted_rows": n, "cognee_emptied": emptied}

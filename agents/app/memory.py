@@ -118,6 +118,21 @@ async def stats(user_id: str) -> dict[str, object]:
     return out
 
 
+async def forget_all(user_id: str) -> bool:
+    """Empty this user's Cognee dataset (FORGET): documents, graph and vectors. True if there was one."""
+    try:
+        ds = next((d for d in await cognee.datasets.list_datasets() if d.name == dataset(user_id)), None)
+        if ds is None:
+            return False
+        async with _write:
+            await cognee.datasets.empty_dataset(ds.id)
+        _cloud.pop(user_id, None)
+        return True
+    except Exception:
+        log.exception("couldn't empty Cognee dataset %s", dataset(user_id))
+        raise
+
+
 _writes: set[asyncio.Task[None]] = set()
 
 

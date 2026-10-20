@@ -3,13 +3,13 @@ import { redirect } from "next/navigation"
 import { connection } from "next/server"
 import { authConfigured, signIn } from "@/auth"
 import { currentUser } from "../lib/session"
-import { NetMark } from "../home/icons"
-import "../home/network-os.css"
+import { NetMark } from "../components/icons"
+import "./signin.css"
 
 export const metadata: Metadata = { title: "Sign in · NetworkOS" }
 
-/* Where to go after signing in: a path on this site (?next=/…), the dashboard otherwise. */
-const safeNext = (next: string | undefined) => (next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/home")
+/* Where to go after signing in: a path on this site (?next=/…), the home page otherwise. */
+const safeNext = (next: string | undefined) => (next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/")
 
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   await connection()

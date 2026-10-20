@@ -8,7 +8,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { PEOPLE, GOALS, findPerson, warmthOf, drafts, type Goal, type Person } from "../lib/people"
-import { signInWithGoogle } from "../home/actions"
+import { signInWithGoogle } from "../signin/actions"
 
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect
 
@@ -271,7 +271,7 @@ export function OneScreen({ children, user }: { children?: ReactNode; user?: { n
           <a href="/">NetworkOS</a>
           <a href="#join">Early access</a>
           {user ? (
-            <a className="ly-google" href="/home">
+            <a className="ly-google" href="/">
               {user.image ? <img src={user.image} alt="" width={20} height={20} className="ly-avatar" referrerPolicy="no-referrer" /> : null}
               Signed in as {user.name.split(" ")[0]}
             </a>

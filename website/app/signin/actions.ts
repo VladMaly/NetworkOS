@@ -11,7 +11,7 @@ export async function signOutAction() {
 /* The landing page's top-right button: straight to Google, or to the app if already signed in. Without Google keys
    it falls back to /signin, which says what's missing. */
 export async function signInWithGoogle() {
-  if (await currentUser()) redirect("/home")
+  if (await currentUser()) redirect("/")
   if (!authConfigured) redirect("/signin")
-  await signIn("google", { redirectTo: "/home" })
+  await signIn("google", { redirectTo: "/?start=1" })
 }

@@ -6,7 +6,7 @@ Your AI relationship team: tell it who you met and what happened, and it works o
 
 | Folder | What it is |
 |---|---|
-| `website/` | The Next.js app: landing page (`/`), sign-in (`/signin`), the dashboard (`/home`) and its API routes. Deployed on Vercel. |
+| `website/` | The Next.js app: the app itself at `/` (one page in `public/networkos.html`), sign-in (`/signin`), the old landing page (`/lanyard`) and the API routes. Deployed on Vercel. |
 | `agents/` | Python service: the AI team (Planner, Research, Strategist, Outreach), Cognee memory, SQLite app state. Deployed on Railway. |
 | `docs/` | Architecture and setup. Start with [docs/architecture.md](docs/architecture.md). |
 

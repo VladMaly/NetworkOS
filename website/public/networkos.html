@@ -67,15 +67,21 @@ a { color: var(--accent); }
 .foot:empty { display: none; }
 .tabs { flex: none; background: var(--surface); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: relative; z-index: 2; }
 .app { position: relative; }
-.tab-ai { background: none; border: 0; display: grid; justify-items: center; align-content: start; gap: 2px; font-size: 11.5px; font-weight: 700; color: var(--accent); padding: 0 2px 10px; }
-.tab-ai .ai-dot { width: 56px; height: 56px; margin-top: -22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 0 0 4px var(--surface), 0 8px 20px -6px var(--accent); transition: transform .15s; }
+/* Bottom tabs: every tab has the same 56×30 pill behind its icon, so nothing pokes out of the bar. The current tab's
+   pill is tinted and its label bold; Ask AI's pill is solid, as the one action. */
+.tab, .tab-ai { background: none; border: 0; padding: 8px 2px 10px; display: grid; justify-items: center; align-content: start; gap: 4px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--muted); position: relative; min-height: 62px; cursor: pointer; }
+.tab svg { box-sizing: border-box; width: 56px; height: 30px; padding: 4px 17px; border-radius: 15px; transition: background .15s, color .15s; }
+.tab:hover svg { background: var(--surface-2); }
+.tab[aria-current="page"] { color: var(--accent); font-weight: 700; }
+.tab[aria-current="page"] svg { background: var(--accent-soft); }
+.tab-ai { color: var(--accent); font-weight: 700; }
+.tab-ai .ai-dot { width: 56px; height: 30px; border-radius: 15px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 6px 14px -8px var(--accent); transition: transform .15s; }
 .tab-ai:active .ai-dot { transform: scale(.94); }
-.tab-ai svg { width: 26px; height: 26px; }
-.tab { background: none; border: 0; padding: 8px 4px 10px; display: grid; justify-items: center; gap: 2px; font-size: 11.5px; font-weight: 600; color: var(--muted); position: relative; min-height: 56px; }
-.tab svg { width: 22px; height: 22px; }
-.tab[aria-current="page"] { color: var(--accent); }
-.tab .badge { position: absolute; top: 5px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: var(--mark); color: var(--surface); font-size: 10.5px; display: grid; place-items: center; font-family: var(--f-mono); }
-.tab .live { position: absolute; top: 7px; left: calc(50% + 9px); width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+.tab-ai svg { width: 20px; height: 20px; }
+.tab:focus-visible, .tab-ai:focus-visible { outline: none; }
+.tab:focus-visible svg, .tab-ai:focus-visible .ai-dot { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tab .badge { position: absolute; top: 4px; left: calc(50% + 12px); min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: var(--mark); color: var(--surface); font-size: 10.5px; display: grid; place-items: center; font-family: var(--f-mono); box-shadow: 0 0 0 2px var(--surface); }
+.tab .live { position: absolute; top: 6px; left: calc(50% + 16px); width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
 
 /* Top bar */
 .brand { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 700; font-size: 18px; letter-spacing: -.01em; margin-right: auto; min-width: 0; }
@@ -699,7 +705,9 @@ const ONB_CTX = {
   mei: { key: "Payflow" },
 };
 const NEG_CTX_RE = /\b(not interested|not a fit|no longer|bad terms|don't contact|do not contact)\b/i;
+let REAL = null;  // the owner's real contacts, once loaded (see loadContacts)
 function withCtx(s) {
+  if (REAL) { s.people = REAL.map(realPerson); return s; }
   s.people = s.people.map((p) => (ONB_CTX[p.id] ? { ...p, ...ONB_CTX[p.id] } : p)).map((p) => (SRC_OF[p.id] ? { ...p, from: SRC_OF[p.id] } : p));
   s.people.push(...EXTRA.map(extraPerson));
   return s;
@@ -1065,7 +1073,8 @@ function viewSettings() {
 
 /* ---------- Landing ---------- */
 function viewLanding() {
-  const prev = [["alex", "Send the demo before Oct 28", 9], ["ravi", "Former teammate, just started looking", 8], ["hana", "Intro path through Marcus", 7]];
+  const prev = REAL ? S.people.filter((p) => p.cand).sort((a, b) => b.rec.score - a.rec.score).slice(0, 3).map((p) => [p.id, p.rec.action.slice(0, 60), p.rec.score])
+    : [["alex", "Send the demo before Oct 28", 9], ["ravi", "Former teammate, just started looking", 8], ["hana", "Intro path through Marcus", 7]];
   return `<div class="land gut">
     <section>
       <span class="eyebrow rise">For founders</span>
@@ -1840,6 +1849,8 @@ function netListHTML() {
 const LAST_TOUCH = { alex: "Email · Sep 24", ravi: "Email · Mar 2024", hana: "Never met · via Marcus", owen: "Email · May 2025", grace: "Call · Aug 2025",
   marcus: "LinkedIn message · Oct 2", nina: "In person · 2024 meetup", mei: "Meeting · Nov 2024" };
 function socialsOf(p) {
+  if (p.real) return [p.linkedin && ["in", "LinkedIn", p.linkedin.replace(/^https?:\/\/(www\.)?/, "")], p.telegram && ["✈", "Telegram", p.telegram],
+    p.email && ["@", "Email", p.email], p.phone && ["☎", "Phone", p.phone]].filter(Boolean);
   const slug = p.name.toLowerCase().replace(/[^a-z ]/g, "").replace(/ /g, "");
   const dom = p.co.toLowerCase().replace(/^ex-/, "").replace(/[^a-z]/g, "") || "mail";
   return [["in", "LinkedIn", `linkedin.com/in/${slug}`], ["𝕏", "X", `x.com/${slug}`], ["@", "Email", p.email || `${first(p).toLowerCase()}@${dom}.example`]];
@@ -1859,7 +1870,7 @@ function viewPerson() {
   const prom = S.promises.filter((x) => x.pid === p.id);
   const via = p.via ? person(p.via) : null;
   const source = p.cand || p.extra ? `Network scan · ${SRC_NAME[p.from]}` : p.added ? p.src || "Added by you" : `${p.src}`;
-  const last = LAST_TOUCH[p.id] || (p.extra ? p.signal : `${p.when} · ${p.src}`);
+  const last = LAST_TOUCH[p.id] || p.lastTouch || (p.extra ? p.signal : `${p.when} · ${p.src}`);
   return `<div class="screen gut">
     <section class="card phero">
       ${via ? `<span class="duo big"><span class="av ${via.av}">${via.ini}</span><span class="av ${p.av}">${p.ini}</span></span>` : `<span class="av xl ${p.av}">${p.ini}</span>`}
@@ -1868,7 +1879,7 @@ function viewPerson() {
     </section>
     ${via ? `<div class="path" aria-label="How you're connected"><span class="node">You</span><span class="edge">met</span><span class="node">${first(via)}</span><span class="edge">co-invested</span><span class="node">${first(p)}</span></div>` : ""}
 
-    <section><h2>Contact <small>example profile</small></h2>
+    <section><h2>Contact <small>${p.real ? "from your contacts" : "example profile"}</small></h2>
       <ul class="card socials">${socialsOf(p).map(([ic, lbl, val]) => `<li><span class="logo">${ic}</span><div class="txt"><div class="nm">${lbl}</div><div class="rl sel">${esc(val)}</div></div>
         <button class="btn sm quiet" type="button" data-social="${lbl}">${lbl === "Email" ? "Copy" : "Open"}</button></li>`).join("")}</ul></section>
 
@@ -2179,6 +2190,7 @@ function restart() {
     logMem("search", "Strategy", "“customer count” → 410 paying customers (Stripe, Oct 19)");
     bill("Strategy");
     const m = person("marcus");
+    if (!m) { render(); toast(`Sessions restarted. Memory survived: ${plural(COG.people || 0, "person", "people")} still in Cognee.`); return; }
     m.rec = { ...m.rec, score: 10, why: "Marcus asked to see the deck once you hit 400 customers. You're at 410, so his condition is met.",
       action: "Send the deck today", recall: "Marcus: “Send me the deck when you hit 400 customers” (LinkedIn DM, Oct 2, recalled after restart)",
       draft: "Hi Marcus,\n\nYou asked me to come back when we hit 400 paying customers. We're at 410 and growing 22% a month. Deck attached.\n\nWould love to have you in the round if it fits.\n\nSam" };
@@ -2513,10 +2525,61 @@ function cogRender() {
   document.querySelectorAll("[data-cogn]").forEach((el) => (el.textContent = cogCount()));
 }
 
+
+/* ---------- Real contacts ----------
+   The owner's own export, loaded from /api/contacts after Google sign-in. It replaces the example people entirely. */
+const WARMTH = { "Тёплый": ["warm", "Warm"], "Знакомый": ["quiet", "Acquaintance"], "Холодный": ["", "Cold"] };
+const STATUS_EN = { "Новый": "New", "В контакте": "In touch", "Спящий": "Dormant", "Ждёт моего действия": "Waiting on you", "Жду ответа": "Waiting for a reply" };
+const OPP_GOAL = { "Инвестиции": "raise", "Работа": "hire", "Оплачиваемый проект": "hire", "Менторство": "hire", "Партнёрство": "partners", "Интро": "partners" };
+const OPP_EN = { "Инвестиции": "Investment", "Работа": "Work", "Оплачиваемый проект": "Paid project", "Менторство": "Mentoring", "Партнёрство": "Partnership", "Интро": "Intro", "Другое": "Other" };
+const CHANNEL_SRC = { "LinkedIn": "linkedin", "Email": "gmail", "Telegram": "contacts", "WhatsApp": "contacts", "Телефон": "contacts", "Instagram": "contacts" };
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const ruDate = (d) => { const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(d || ""); return m ? { day: +m[1], mon: +m[2], yr: +m[3], txt: `${MONTHS[+m[2] - 1]} ${+m[1]}` } : null; };
+function realPerson(r, i) {
+  const latin = r.name.includes("/") ? r.name.split("/").slice(1).join("/") : r.name;
+  const name = latin.replace(/\(.*?\)/g, "").replace(/\s+/g, " ").trim() || r.name;
+  const parts = name.split(" ");
+  const goal = OPP_GOAL[r.opportunity] || "warm";
+  const score = Math.max(3, ({ P0: 9, P1: 7, P2: 5 }[r.priority] || 4) - (r.warmth === "Холодный" ? 1 : 0));
+  const met = ruDate(r.met), follow = ruDate(r.followup), last = ruDate(r.last);
+  const cand = r.action === "Да" && goal !== "warm";
+  const fresh = !cand && !!met && met.yr === 2026 && met.mon === 10 && met.day >= 6;
+  const owner = ME ? ME.name.split(" ")[0] : "Sam";
+  const where = r.where.split(",")[0];
+  return { id: "c" + i, real: true, cand, fresh, extra: !cand && !fresh, name, alias: r.name, ini: (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase(),
+    av: ["a", "b", "c", "d", "e"][i % 5], role: r.role.split(" — ")[0].slice(0, 80) || "Contact", co: r.company || "Independent", key: r.company,
+    from: CHANNEL_SRC[r.channel] || "calendar", src: SRC_NAME[CHANNEL_SRC[r.channel] || "calendar"], when: met ? met.txt : "",
+    signal: [r.where, r.via ? `intro: ${r.via}` : ""].filter(Boolean).join(" · "), kind: WARMTH[r.warmth] || ["", "Unknown"],
+    lastTouch: last ? `Last contact ${last.txt}${r.channel ? ` · ${r.channel}` : ""}` : r.channel ? `Main channel: ${r.channel}` : "",
+    email: r.email, linkedin: r.linkedin, telegram: r.telegram, phone: r.phone || r.whatsapp, tags: r.tags,
+    sample: r.notes, notes: r.notes ? [r.notes] : [],
+    promise: r.status === "Ждёт моего действия" && r.next ? { owe: r.next, due: follow ? `Due ${follow.txt}` : "" } : undefined,
+    rec: { score, goal, why: [OPP_EN[r.opportunity] ? `Opportunity: ${OPP_EN[r.opportunity]}` : "", STATUS_EN[r.status] ? `Status: ${STATUS_EN[r.status]}` : "", r.notes].filter(Boolean).join(". "),
+      action: r.next || "Stay in touch", research: r.about, memo: r.help ? `How you can help: ${r.help}` : "",
+      draft: `Hi ${parts[0]},\n\nIt was great meeting you${where ? ` at ${where}` : ""}. I'd love to keep the conversation going. Do you have 20 minutes this week?\n\n${owner}` } };
+}
+function realBandInput() {
+  const p = S.people.filter((x) => x.cand && !x.forgotten).sort((a, b) => b.rec.score - a.rec.score)[0] || S.people[0];
+  return `I met ${p.name}, ${p.role} at ${p.co}${p.signal ? ` (${p.signal})` : ""}. ${p.sample || ""}`.trim().slice(0, 900);
+}
+async function loadContacts() {
+  try {
+    const d = await liveJSON("/api/contacts");
+    REAL = d.contacts;
+    Object.assign(GOALS, { raise: "Investors and fundraising", hire: "Work and paid projects", partners: "Partnerships and intros" });
+    GOAL_OPTS.splice(0, 3, { id: "raise", nm: "Investors", rl: "People who could invest or open a round" },
+      { id: "hire", nm: "Work and paid projects", rl: "Jobs, paid projects, mentoring" }, { id: "partners", nm: "Partnerships and intros", rl: "Partners, intros, collaborations" });
+    S = SEED(); B = bandFresh();
+    toast(`Loaded your ${REAL.length} contacts`);
+  } catch { REAL = null; }
+}
+
 /* ---------- Account: real Google sign-in ---------- */
 let ME = null, SIGNIN_READY = false;
 async function loadMe() {
   try { const d = await liveJSON("/api/me"); ME = d.user; SIGNIN_READY = d.signInReady; } catch { ME = null; }
+  if (ME) await loadContacts();
+  if (!ME && S.view === "demo") S.view = "landing";  // signed out: no people at all, just the way in
   const q = new URLSearchParams(location.search);
   if (q.has("start")) {
     history.replaceState(null, "", location.pathname);
@@ -2534,7 +2597,7 @@ function accountHTML() {
   if (ME) return `<div class="set-row"><div class="txt"><b>${esc(ME.name)}</b><span>${esc(ME.email)} · signed in with Google</span></div>
       <button class="btn sm quiet" type="button" data-act="signout">Sign out</button></div>
     <div class="set-row"><div class="txt"><b>Your memory</b><span>Live runs and Cognee use your account. <span data-cog>${cogLine()}</span></span></div>
-      <a class="btn sm quiet" href="/home">Dashboard</a></div>`;
+      </div>`;
   return `<div class="set-row"><div class="txt"><b>Not signed in</b><span>You're using the shared demo memory. Sign in to keep your own.</span></div>
       <button class="btn sm" type="button" data-act="signin">Sign in with Google</button></div>`;
 }
@@ -2734,6 +2797,10 @@ document.addEventListener("click", (e) => {
   else if (ds.social) {
     const p = person(S.personId), [, , val] = socialsOf(p).find(([, l]) => l === ds.social);
     if (ds.social === "Email") { navigator.clipboard?.writeText(val).then(() => toast("Email copied"), () => toast(val)); }
+    else if (p.real) {
+      const url = /^https?:/.test(val) ? val : ds.social === "LinkedIn" ? `https://${val}` : ds.social === "Telegram" ? `https://t.me/${val.replace(/^@/, "")}` : `tel:${val.replace(/[^+\d]/g, "")}`;
+      window.open(url, "_blank", "noopener");
+    }
     else toast(`Example profile: ${val}. Real links appear once accounts are connected.`);
   }
   else if (ds.act === "pnote-save") {
@@ -2759,7 +2826,11 @@ document.addEventListener("click", (e) => {
   }
   else if (ds.act === "ai-open") openSheet(true);
   else if (ds.act === "band-back") go("agents");
-  else if (ds.act === "band-run") { B = bandFresh(); bandLoadScript(B); B.running = true; B.phase = "running"; render(false); liveStart(BAND_INPUT); }
+  else if (ds.act === "band-run") {
+    // With your real contacts there's no scripted run: your top priority goes straight to the real agents.
+    if (REAL) { const text = realBandInput(); B = bandFresh(); B.items.push({ type: "user", text }); render(false); liveStart(text); }
+    else { B = bandFresh(); bandLoadScript(B); B.running = true; B.phase = "running"; render(false); liveStart(BAND_INPUT); }
+  }
   else if (ds.act === "live-approve") liveApprove();
   else if (ds.act === "band-pause") { if (B.running) { B.paused = !B.paused; render(); } }
   else if (ds.act === "band-reset") { B = bandFresh(); render(false); }

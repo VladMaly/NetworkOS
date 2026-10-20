@@ -28,8 +28,8 @@ A question like "Who should I follow up with?" takes a shorter path: Planner →
  Browser ──────────▶│ website/  (Next.js 16)                                          │
  Google sign-in     │  /            landing + waitlist                                │
                     │  /signin      Continue with Google (Auth.js)                    │
-                    │  /home        the dashboard                                     │
-                    │  /api/os/*    forwards to agents/ with the signed-in user's ID  │
+                    │  /            the app (public/networkos.html)                   │
+                    │  /api/demo    forwards to agents/ with the signed-in user's ID   │
                     └───────────────────────────────┬─────────────────────────────────┘
                                                     │ HTTPS + shared secret + X-User-Id
                     ┌──────────────── Railway (one service, one disk at /data) ───────┐
@@ -48,7 +48,7 @@ A question like "Who should I follow up with?" takes a shorter path: Planner →
 
 | Part | Tech | Where |
 |---|---|---|
-| Website, dashboard | Next.js 16, React 19, the frost-glass CSS in `globals.css` | Vercel, Root Directory `website` |
+| Website and app | Next.js 16 API routes; the app is one page, `public/networkos.html` | Vercel, Root Directory `website` |
 | Sign-in | Auth.js v5 with Google | Vercel |
 | Agents | Python 3.12, FastAPI, OpenAI Python SDK pointed at OpenRouter | Railway |
 | Agent coordination | Band, behind `agents/band.py` | inside `agents/` |
@@ -81,7 +81,7 @@ All routes need `Authorization: Bearer <AGENTS_SECRET>` and `X-User-Id`.
 | `GET` | `/me` | Profile: name, building, goal, voice |
 | `PATCH` | `/me` | `{building?, goal?, voice?}` |
 | `POST` | `/capture` | `{text}` → `{run_id}`. Starts a run in the background. |
-| `GET` | `/runs/{id}` | Stage, log, agent notes, handoffs, answer or draft, status. The dashboard polls this. |
+| `GET` | `/runs/{id}` | Stage, log, agent notes, handoffs, answer or draft, status. The app polls this. |
 | `GET` | `/people` | Contacts, ranked by score |
 | `GET` | `/people/{id}` | One contact, its interactions and its latest run |
 | `PATCH` | `/people/{id}` | `{notes?}` and editable facts |

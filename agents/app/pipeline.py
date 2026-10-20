@@ -1,6 +1,7 @@
 """One run: Planner → Research → Strategist → Outreach, with Cognee memory read on the way in and written once you
 approve. Each step saves the run, so the dashboard (polling GET /runs/{id}) shows progress as it happens."""
 import logging
+import re
 from datetime import date, datetime
 from typing import Literal, Optional
 
@@ -261,14 +262,15 @@ async def _answer(run: Run, user: User, contacts: list[Contact], question: str) 
     people = "\n\n".join(f"id {c.id}\n{_card(c)}\nScore: {c.score}/10\nNext: {c.next_action} by {c.next_date}" for c in contacts) or "(no contacts yet)"
     ans, u, _ = await ask(Answer, ANSWERER, f"Today is {date.today().isoformat()}.\n\n{_me(user)}\n\nContacts:\n{people}\n\nFrom memory:\n{context or '(nothing yet)'}\n\nQuestion: {question}", effort="medium")
     _use(run, "Strategist", u)
-    run.answer = ans.answer
+    # contact ids are for linking the answer, not for reading
+    run.answer = re.sub(r"\s*(\((id:?\s*)?[0-9a-f]{12}\)|Contact id:?\s*[0-9a-f]{12}\.?)", "", ans.answer, flags=re.I).strip()
     run.contact_id = next((i for i in ans.contact_ids if any(c.id == i for c in contacts)), None)
     _note(run, 2, "Answered from your contacts and memory")
     _note(run, 3, "Nothing to draft for a question")
     _say(run, "Answer ready")
     run.stage, run.status, run.updated_at = 4, "answered", now()
     _save(run)
-    band.finish(run, ans.answer)
+    band.finish(run, run.answer)
 
 
 async def approve(run: Run, contact: Optional[Contact], body: Optional[str]) -> None:
@@ -281,3 +283,4 @@ async def approve(run: Run, contact: Optional[Contact], body: Optional[str]) -> 
         outcome = f"The founder approved a follow-up to {contact.name}. Subject: {run.draft_subject}\n{run.draft_body}"
         _save(Interaction(user_id=run.user_id, contact_id=contact.id, what=f"You approved the follow-up: {run.draft_subject}"))
         memory.remember_later(run.user_id, outcome)
+        band.approved(run, f"follow-up to {contact.name}" + (f" ({run.draft_subject})" if run.draft_subject else ""))

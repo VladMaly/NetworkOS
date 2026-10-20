@@ -10,7 +10,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import col, select
 
-from . import store
+from . import band, store
 from .config import AGENTS_SECRET, PRICE_IN, PRICE_OUT
 from .pipeline import approve, run_pipeline
 from .store import Contact, Interaction, Run, User, now, session
@@ -54,6 +54,7 @@ def _run_out(r: Run) -> dict[str, Any]:
     tin = sum(v["input"] for v in r.usage.values())
     tout = sum(v["output"] for v in r.usage.values())
     d["cost_usd"] = round(tin / 1e6 * PRICE_IN + tout / 1e6 * PRICE_OUT, 4)
+    d["band_room"] = band.room_id(r.id)
     return d
 
 
@@ -65,8 +66,9 @@ def _contact_out(c: Contact, runs: dict[str, Run]) -> dict[str, Any]:
 
 
 @app.get("/health")
-def health() -> dict[str, bool]:
-    return {"ok": True}
+def health() -> dict[str, Any]:
+    """Liveness, plus which Band agents are wired up (names and handles only, never keys)."""
+    return {"ok": True, "band": band.enabled(), "band_agents": {name: a.handle for name, a in band.AGENTS.items()}}
 
 
 # ── you ──

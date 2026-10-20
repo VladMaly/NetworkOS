@@ -1,6 +1,6 @@
-import { OneScreen } from "./components/one-screen"
-import { Waitlist } from "./components/waitlist"
-import { currentUser } from "./lib/session"
+import { OneScreen } from "../components/one-screen"
+import { Waitlist } from "../components/waitlist"
+import { currentUser } from "../lib/session"
 
 const STEPS = [
   ["Read", "The badge and the Luma page.", "name · company · event"],

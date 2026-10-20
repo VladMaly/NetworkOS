@@ -234,6 +234,30 @@ h2 small { font-family: var(--f-body); font-size: 12.5px; font-weight: 500; colo
 .agents .mono { width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--f-mono); font-size: 17px; font-weight: 500; flex: none; position: relative; }
 .agents .mono.on::after { content: ""; position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); animation: pulse 1s ease-in-out infinite; }
 .agents .txt { flex: 1; min-width: 0; }
+.live { display: grid; gap: 10px; }
+.live .lhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lbadge { font-size: 12px; font-weight: 600; color: var(--muted); }
+.lbadge.on { color: var(--accent); }
+.lbadge.off { color: #B5452F; }
+.live .lnote { margin: 0; color: var(--muted); font-size: 13.5px; }
+.live .lnote.err { color: #B5452F; }
+.lsteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.lsteps li { padding: 6px 10px; border-left: 3px solid var(--line); font-size: 13.5px; }
+.lsteps li div { display: grid; color: var(--muted); font-size: 12.5px; }
+.lsteps li.done { border-color: var(--accent); }
+.lsteps li.working { border-color: var(--accent); background: var(--surface-2); }
+.lsteps li.fail { border-color: #B5452F; }
+.lsteps li.wait { opacity: .6; }
+.live .lline { margin: 0; font-size: 13px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.live .lline .tag { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--muted); }
+.lhand { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); }
+.ldraft pre { white-space: pre-wrap; font-family: var(--f-body); font-size: 13.5px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; margin: 6px 0; }
+.live .lfine { margin: 0; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+
+.agents .handle { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agents .bstats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.agents .bstats b { color: var(--ink); font-family: var(--f-mono); font-weight: 500; }
+.agents .bstats .err b { color: #B5452F; }
 .agents .nm { font-weight: 600; font-size: 14.5px; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .agents .rl { font-size: 12.5px; color: var(--muted); }
 .agents .num { text-align: right; font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.4; white-space: nowrap; }
@@ -615,14 +639,17 @@ const SOURCES = [
   { id: "gmail", nm: "Gmail", rl: "4,100 threads, read-only", l: "M" },
   { id: "contacts", nm: "Phone contacts", rl: "612 saved contacts", l: "☎" },
 ];
+/* The four RelationshipOS agents registered in Band (app.band.ai). The Planner leads: it opens each run's room,
+   assigns the work and keeps the shared memory in Cognee. */
 const AGENTS = [
-  { name: "Context Builder", icon: "🧩", harness: "Claude Code", role: "Turns your notes into context" },
-  { name: "Research Agent", icon: "🔎", harness: "Codex", role: "Scans and looks people up" },
-  { name: "Relationship Strategist", icon: "🎯", harness: "Claude Code", role: "Lead · plans and ranks people" },
-  { name: "Outreach Agent", icon: "✉️", harness: "LangGraph", role: "Drafts follow-ups in your style" },
-  { name: "Memory Agent", icon: "🧠", harness: "Cognee", role: "Remembers everything, across sessions" },
+  { name: "Planner", full: "RelationshipOS Planner", handle: "vladmaly7/relationshipos-planner", icon: "🧭", lead: true, role: "Breaks down your request and assigns tasks" },
+  { name: "Research", full: "RelationshipOS Research", handle: "vladmaly7/relationshipos-research", icon: "🔎", role: "Finds public context about people and companies you just met" },
+  { name: "Strategy", full: "RelationshipOS Strategy", handle: "vladmaly7/relationshipos-strategy", icon: "🎯", role: "Scores each relationship and decides the next action" },
+  { name: "Outreach", full: "RelationshipOS Outreach", handle: "vladmaly7/relationshipos-outreach", icon: "✉️", role: "Drafts the follow-up in your voice. Never sends without approval" },
 ];
-const SPLIT = { "Context Builder": [380, 0.004], "Research Agent": [920, 0.012], "Relationship Strategist": [410, 0.006], "Outreach Agent": [430, 0.008], "Memory Agent": [260, 0.004] };
+const SPLIT = { "Planner": [640, 0.008], "Research": [920, 0.012], "Strategy": [410, 0.006], "Outreach": [430, 0.008] };
+/* What Band showed for each agent before this session (messages, tool calls, errors); live work adds to it. */
+const BAND_HISTORY = { "Planner": [148, 61, 0], "Research": [96, 214, 2], "Strategy": [73, 38, 0], "Outreach": [57, 29, 1] };
 const CREDITS_PER_PERSON = 3;
 const SCAN_CREDITS = 17;
 const PROMISE_RE = /\b(promised|owe|i'll|i will|said i'd|offered|will send|follow up)\b/i;
@@ -748,7 +775,7 @@ const SEED = () => withCtx({
   next: [],
   promises: [],
   board: [],
-  usage: { "Context Builder": [0, 0, 0], "Research Agent": [0, 0, 0], "Relationship Strategist": [0, 0, 0], "Outreach Agent": [0, 0, 0], "Memory Agent": [0, 0, 0] },
+  usage: { "Planner": [0, 0, 0], "Research": [0, 0, 0], "Strategy": [0, 0, 0], "Outreach": [0, 0, 0] },
   log: [],
   memStats: { people: 0, facts: 0 },
   credits: 50, plan: 50, nextW: 5, restarted: false,
@@ -794,6 +821,12 @@ function moveItem(id, col, owner, title) {
   if (owner) w.owner = owner;
   if (title) w.title = title;
 }
+/* Band's counters for an agent: its history plus this session's work (a message per handoff, a tool call per 400 tokens). */
+function bandStats(name) {
+  const [m, t, e] = BAND_HISTORY[name];
+  const [sess, tok] = S.usage[name];
+  return [m + sess * 3 + Math.round(tok / 900), t + Math.round(tok / 400), e];
+}
 function bill(agent, times = 1, sessions = 0) {
   const [tok, cost] = SPLIT[agent];
   const u = S.usage[agent];
@@ -802,7 +835,7 @@ function bill(agent, times = 1, sessions = 0) {
 function addFollowUp(p, extra = {}) {
   const wid = "W-" + String(S.nextW++).padStart(2, "0");
   const warm = goalOf(p.rec) === "warm";
-  S.board.unshift({ id: wid, title: warm ? `Keep warm: ${p.name}` : p.via ? `Intro ask: ${p.name} via ${first(person(p.via))}` : `Follow up: ${p.name}`, col: warm ? "done" : "human", owner: "Outreach Agent" });
+  S.board.unshift({ id: wid, title: warm ? `Keep warm: ${p.name}` : p.via ? `Intro ask: ${p.name} via ${first(person(p.via))}` : `Follow up: ${p.name}`, col: warm ? "done" : "human", owner: "Outreach" });
   S.next.push({ id: p.id, personId: p.id, status: "open", isNew: true, wid, tokens: 2140, cost: 0.03, ...extra });
   return wid;
 }
@@ -862,9 +895,9 @@ function roomBlock(wid, steps, idx, phase) {
     <div class="room-head"><span>Band <b>#sam-network</b> · <b>${wid}</b></span><a href="https://app.band.ai" target="_blank" rel="noopener">Open in Band ↗</a></div>
     <ol aria-label="Agent handoffs">${steps.map((s, i) => {
       const st = phase === "done" || i < idx ? "done" : i === idx ? (phase === "ask" ? "human" : "working") : "wait";
-      const h = AGENTS.find((x) => x.name === s.ag).harness;
+      const h = AGENTS.find((x) => x.name === s.ag).lead ? '<span class="harness">lead</span>' : "";
       const body = st === "wait" ? "Waiting" : st === "working" ? "Working…" : s.body;
-      return `<li class="${st}"><span class="ic"></span><div><span class="who"><span class="an">${s.ag}</span><span class="harness">${h}</span>${s.ask ? '<span class="harness">needs you</span>' : ""}</span><div>${body}</div></div></li>`;
+      return `<li class="${st}"><span class="ic"></span><div><span class="who"><span class="an">${s.ag}</span>${h}${s.ask ? '<span class="harness">needs you</span>' : ""}</span><div>${body}</div></div></li>`;
     }).join("")}</ol></div>`;
 }
 
@@ -971,13 +1004,12 @@ function viewLanding() {
 
     <section>
       <span class="eyebrow">Your agent team</span>
-      <h2 class="sec-title">Five agents that work together and remember</h2>
+      <h2 class="sec-title">Four agents that work together and remember</h2>
       <div class="team-grid">
-        <div><b>🧩 Context Builder</b><span>Runs your debrief and turns notes into context.</span></div>
-        <div><b>🔎 Research Agent</b><span>Looks up people, companies and intro paths.</span></div>
-        <div><b>🎯 Relationship Strategist</b><span>Plans the week and ranks people against your goals.</span></div>
-        <div><b>✉️ Outreach Agent</b><span>Drafts follow-ups in your own style.</span></div>
-        <div style="grid-column:1/-1"><b>🧠 Memory Agent</b><span>Remembers every person, promise and lesson in Cognee, across sessions.</span></div>
+        <div><b>🧭 Planner</b><span>The lead. Breaks down your request, assigns tasks and keeps memory in Cognee.</span></div>
+        <div><b>🔎 Research</b><span>Finds public context about people and companies you just met.</span></div>
+        <div><b>🎯 Strategy</b><span>Scores each relationship and decides the next action.</span></div>
+        <div><b>✉️ Outreach</b><span>Drafts the follow-up in your voice. Never sends without approval.</span></div>
       </div>
       <div class="stack"><span>Team runs in <b>Band</b></span><span>Memory in <b>Cognee</b></span><span>Billing by <b>Flexprice</b></span></div>
     </section>
@@ -1185,14 +1217,14 @@ function profileSteps() {
   const without = ids.length - withNotes.length;
   const rewritten = o.changes.filter((c) => c.draft).length;
   return [
-    { ag: "Context Builder", body: `Added ${plural(facts, "fact", "facts")} to ${plural(withNotes.length, "person", "people")} from your note.${without ? ` ${plural(without, "person has", "people have")} no notes, so I'm keeping what the scan found.` : ""} <span class="at">@Relationship Strategist</span>
+    { ag: "Planner", body: `Added ${plural(facts, "fact", "facts")} to ${plural(withNotes.length, "person", "people")} from your note.${without ? ` ${plural(without, "person has", "people have")} no notes, so I'm keeping what the scan found.` : ""} <span class="at">@Strategy</span>
       <ul class="split">${ids.map((id) => { const p = person(id), n = o.ex[id] ? o.ex[id].facts.length : 0;
         return `<li><span class="av xs ${p.av}">${p.ini}</span><span class="n">${p.name}</span><span class="m">${n ? plural(n, "fact", "facts") : "from scan"}</span></li>`; }).join("")}</ul>
       <span class="wrote">add + cognify · ${plural(facts, "fact", "facts")} linked to ${plural(withNotes.length, "profile", "profiles")}</span>` },
-    { ag: "Relationship Strategist", body: `${o.changes.length ? "Re-ranked with your context:" : "Your notes didn't change the ranking."} <span class="at">@Outreach Agent</span>
+    { ag: "Strategy", body: `${o.changes.length ? "Re-ranked with your context:" : "Your notes didn't change the ranking."} <span class="at">@Outreach</span>
       ${o.changes.length ? `<ul class="split">${o.changes.map((c) => { const p = person(c.id); return `<li><span class="av xs ${p.av}">${p.ini}</span><span class="n">${p.name}</span><span class="m ${c.to < c.from ? "gap" : ""}">${c.from} → ${c.to}</span></li>`; }).join("")}</ul>` : ""}
       <span class="recall">Goals: ${S.onb.goals.map((g) => GOALS[g]).join(" · ")}</span>` },
-    { ag: "Outreach Agent", body: `${rewritten ? `Rewrote ${plural(rewritten, "draft", "drafts")} to use what you told me.` : "Kept the drafts. They already match what you said."}<span class="recall">Sam writes short emails that lead with a number</span>` },
+    { ag: "Outreach", body: `${rewritten ? `Rewrote ${plural(rewritten, "draft", "drafts")} to use what you told me.` : "Kept the drafts. They already match what you said."}<span class="recall">Sam writes short emails that lead with a number</span>` },
   ];
 }
 function startProfiles() {
@@ -1200,9 +1232,9 @@ function startProfiles() {
   if (!o.notes.trim()) return;
   applyProfiles();
   o.phase = "profile"; o.pi = 0;
-  S.board.unshift({ id: "W-02", title: "Build profiles from Sam's notes", col: "doing", owner: "Context Builder" });
-  o.picked.forEach((id) => { if (o.ex[id].facts.length) logMem("add", "Context Builder", `${first(person(id))}: ${o.ex[id].facts.join(" ")}`); });
-  logMem("cognify", "Memory Agent", "Linked your notes to the scanned profiles");
+  S.board.unshift({ id: "W-02", title: "Build profiles from Sam's notes", col: "doing", owner: "Planner" });
+  o.picked.forEach((id) => { if (o.ex[id].facts.length) logMem("add", "Planner", `${first(person(id))}: ${o.ex[id].facts.join(" ")}`); });
+  logMem("cognify", "Planner", "Linked your notes to the scanned profiles");
   render(false);
   timer = setTimeout(profileTick, 1100);
 }
@@ -1217,20 +1249,20 @@ function startRegular() {
   o.sources = SOURCES.map((s) => s.id);
   S.credits -= SCAN_CREDITS + cands().length * CREDITS_PER_PERSON;
   AGENTS.forEach((a) => bill(a.name, 0, 2));
-  [["Research Agent", 34], ["Context Builder", 18], ["Relationship Strategist", 40], ["Outreach Agent", 18]].forEach(([ag, n]) => bill(ag, n));
+  [["Research", 34], ["Planner", 18], ["Strategy", 40], ["Outreach", 18]].forEach(([ag, n]) => bill(ag, n));
   S.memStats = { people: 1212, facts: 4906 };
-  S.board.push({ id: "W-01", title: "First network scan", col: "done", owner: "Relationship Strategist" });
-  logMem("add", "Research Agent", `Imported ${num(1847)} contacts from 4 sources`);
-  logMem("cognify", "Memory Agent", `Merged into ${num(1212)} people and ${num(4906)} facts`);
-  logMem("improve", "Memory Agent", "Learned Sam's style from 200 sent emails: short, lead with a number");
+  S.board.push({ id: "W-01", title: "First network scan", col: "done", owner: "Strategy" });
+  logMem("add", "Research", `Imported ${num(1847)} contacts from 4 sources`);
+  logMem("cognify", "Planner", `Merged into ${num(1212)} people and ${num(4906)} facts`);
+  logMem("improve", "Planner", "Learned Sam's style from 200 sent emails: short, lead with a number");
   o.i = 4;
   o.picked = cands().map((p) => p.id);
   o.notes = o.picked.map((id) => person(id).sample).filter(Boolean).join(" ");
   applyProfiles();
-  ["Context Builder", "Relationship Strategist", "Outreach Agent"].forEach((ag) => bill(ag, o.picked.length));
-  S.board.unshift({ id: "W-02", title: "Build profiles from Sam's notes", col: "done", owner: "Outreach Agent" });
+  ["Planner", "Strategy", "Outreach"].forEach((ag) => bill(ag, o.picked.length));
+  S.board.unshift({ id: "W-02", title: "Build profiles from Sam's notes", col: "done", owner: "Outreach" });
   S.memStats.facts += o.picked.reduce((a, id) => a + o.ex[id].facts.length, 0);
-  logMem("add", "Context Builder", "Profiles built from Sam's onboarding notes");
+  logMem("add", "Planner", "Profiles built from Sam's onboarding notes");
   finishOnboarding();
 }
 function applyProfiles() {
@@ -1254,12 +1286,12 @@ function applyProfiles() {
 }
 function profileTick() {
   const o = S.onb;
-  const order = ["Context Builder", "Relationship Strategist", "Outreach Agent"];
+  const order = ["Planner", "Strategy", "Outreach"];
   bill(order[o.pi], o.picked.length);
-  if (o.pi === 1 && o.changes.length) logMem("search", "Relationship Strategist", `“what changed for the goals?” → ${o.changes.map((c) => `${first(person(c.id))} ${c.from}→${c.to}`).join(", ")}`);
+  if (o.pi === 1 && o.changes.length) logMem("search", "Strategy", `“what changed for the goals?” → ${o.changes.map((c) => `${first(person(c.id))} ${c.from}→${c.to}`).join(", ")}`);
   o.pi++;
   if (o.pi < 3) moveItem("W-02", "doing", order[o.pi]);
-  else moveItem("W-02", "done", "Outreach Agent");
+  else moveItem("W-02", "done", "Outreach");
   S.memStats.facts += o.pi === 1 ? o.picked.reduce((a, id) => a + (o.ex[id] ? o.ex[id].facts.length : 0), 0) : 0;
   render();
   if (o.pi < 3) timer = setTimeout(profileTick, 1100);
@@ -1277,12 +1309,12 @@ function footOnboard() {
 function scanSteps() {
   const srcNames = SOURCES.filter((s) => S.onb.sources.includes(s.id)).map((s) => s.nm).join(", ");
   return [
-    { ag: "Research Agent", body: `Imported ${num(1847)} contacts from ${esc(srcNames)}. <span class="at">@Context Builder</span> over to you.` },
-    { ag: "Context Builder", body: `Merged duplicates into ${num(1212)} people. ${num(214)} of them you've actually emailed, met or messaged. <span class="at">@Relationship Strategist</span>
+    { ag: "Research", body: `Imported ${num(1847)} contacts from ${esc(srcNames)}. <span class="at">@Planner</span> over to you.` },
+    { ag: "Planner", body: `Merged duplicates into ${num(1212)} people. ${num(214)} of them you've actually emailed, met or messaged. <span class="at">@Strategy</span>
       <span class="wrote">add + cognify · ${num(1212)} people, ${num(4906)} facts, 1 relationship graph</span>` },
-    { ag: "Relationship Strategist", body: `Scored the ${num(214)} against your goals. ${cands().length} stand out, including warm ties that went quiet and one intro path. The 6 people you met in the last 2 weeks need your context, so they're saved for your first debrief. <span class="at">@Outreach Agent</span>
+    { ag: "Strategy", body: `Scored the ${num(214)} against your goals. ${cands().length} stand out, including warm ties that went quiet and one intro path. The 6 people you met in the last 2 weeks need your context, so they're saved for your first debrief. <span class="at">@Outreach</span>
       <span class="recall">Goals: ${S.onb.goals.map((g) => GOALS[g]).join(" · ")}</span>` },
-    { ag: "Outreach Agent", body: `Learned your writing style from 200 sent emails and drafted a first message for each pick.
+    { ag: "Outreach", body: `Learned your writing style from 200 sent emails and drafted a first message for each pick.
       <span class="wrote">improve · Sam writes short emails that lead with a number</span>` },
   ];
 }
@@ -1290,7 +1322,7 @@ function startScan() {
   const o = S.onb;
   S.credits -= SCAN_CREDITS + cands().length * CREDITS_PER_PERSON;
   o.phase = "scan"; o.i = 0;
-  S.board.push({ id: "W-01", title: "First network scan", col: "doing", owner: "Research Agent" });
+  S.board.push({ id: "W-01", title: "First network scan", col: "doing", owner: "Research" });
   AGENTS.forEach((a) => bill(a.name, 0, 1));
   logMem("system", "Flexprice", `First scan: ${SCAN_CREDITS + cands().length * CREDITS_PER_PERSON} credits`);
   render(false);
@@ -1298,15 +1330,15 @@ function startScan() {
 }
 function scanTick() {
   const o = S.onb;
-  const order = ["Research Agent", "Context Builder", "Relationship Strategist", "Outreach Agent"];
+  const order = ["Research", "Planner", "Strategy", "Outreach"];
   bill(order[o.i], o.i === 0 ? 34 : o.i === 2 ? 40 : 18);
-  if (o.i === 0) logMem("add", "Research Agent", `Imported ${num(1847)} contacts from ${o.sources.length} sources`);
-  if (o.i === 1) { logMem("cognify", "Memory Agent", `Merged into ${num(1212)} people and ${num(4906)} facts`); S.memStats = { people: 1212, facts: 4906 }; }
-  if (o.i === 2) logMem("search", "Relationship Strategist", `“who fits ${S.onb.goals.join(", ")} and is warm?” → ${cands().length} people`);
-  if (o.i === 3) logMem("improve", "Memory Agent", "Learned Sam's style from 200 sent emails: short, lead with a number");
+  if (o.i === 0) logMem("add", "Research", `Imported ${num(1847)} contacts from ${o.sources.length} sources`);
+  if (o.i === 1) { logMem("cognify", "Planner", `Merged into ${num(1212)} people and ${num(4906)} facts`); S.memStats = { people: 1212, facts: 4906 }; }
+  if (o.i === 2) logMem("search", "Strategy", `“who fits ${S.onb.goals.join(", ")} and is warm?” → ${cands().length} people`);
+  if (o.i === 3) logMem("improve", "Planner", "Learned Sam's style from 200 sent emails: short, lead with a number");
   o.i++;
   if (o.i < 4) moveItem("W-01", "doing", order[o.i]);
-  else { moveItem("W-01", "done", "Relationship Strategist"); o.picked = cands().map((p) => p.id); }
+  else { moveItem("W-01", "done", "Strategy"); o.picked = cands().map((p) => p.id); }
   render();
   if (o.i < 4) timer = setTimeout(scanTick, 1300);
 }
@@ -1318,9 +1350,9 @@ function finishOnboarding() {
     if (p.promise && p.promise.owe) S.promises.push({ pid: p.id, kind: "owe", t: p.promise.owe, due: p.promise.due });
     if (p.ctxPromise) S.promises.push({ pid: p.id, ...p.ctxPromise });
   });
-  S.board.unshift({ id: "W-11", title: "Weekly debrief with Sam", col: "todo", owner: "Context Builder" });
+  S.board.unshift({ id: "W-11", title: "Weekly debrief with Sam", col: "todo", owner: "Planner" });
   const skipped = cands().filter((p) => !o.picked.includes(p.id));
-  if (skipped.length) logMem("add", "Relationship Strategist", `Not now: ${skipped.map(first).join(", ")}`);
+  if (skipped.length) logMem("add", "Strategy", `Not now: ${skipped.map(first).join(", ")}`);
   S.view = "moves";
   render(false);
   toast(`${plural(o.picked.length, "person", "people")} added to your plan`);
@@ -1368,19 +1400,19 @@ function roomSteps() {
   ids.forEach((id) => { const g = goalOf(person(id).rec); counts[g] = (counts[g] || 0) + 1; });
   const countTxt = Object.entries(counts).map(([g, c]) => `${c} ${g === "warm" ? "to keep warm" : g === "raise" ? "for the raise" : g === "hire" ? "for the hire" : "as partners"}`).join(", ");
   const steps = [
-    { ag: "Context Builder", body: `Split your notes across ${plural(n, "person", "people")}: ${plural(facts, "fact", "facts")}, ${plural(prom, "promise", "promises")}. <span class="at">@Research Agent</span> they're yours.
+    { ag: "Planner", body: `Split your notes across ${plural(n, "person", "people")}: ${plural(facts, "fact", "facts")}, ${plural(prom, "promise", "promises")}. <span class="at">@Research</span> they're yours.
       <ul class="split">${ids.map((id) => { const p = person(id), e = ex[id];
         const thin = words(e.facts) < 8;
         return `<li><span class="av xs ${p.av}">${p.ini}</span><span class="n">${p.name}</span><span class="m ${thin ? "gap" : ""}">${thin ? "needs detail" : `${e.facts.length} facts${e.promises.length ? ` · ${e.promises.length} promise` : ""}`}</span></li>`; }).join("")}</ul>
       <span class="wrote">add + cognify · ${facts} facts linked to ${plural(n, "person", "people")}</span>` },
-    { ag: "Research Agent", body: `Looked up ${plural(n, "person", "people")} and their companies. <span class="at">@Relationship Strategist</span>
+    { ag: "Research", body: `Looked up ${plural(n, "person", "people")} and their companies. <span class="at">@Strategy</span>
       <ul class="split">${ids.map((id) => { const p = person(id); return `<li><span class="av xs ${p.av}">${p.ini}</span><span class="n">${esc(p.rec.research)}</span></li>`; }).join("")}</ul>` },
-    { ag: "Relationship Strategist", body: `Mapped everyone to your goals: ${countTxt}. ${gp ? `<span class="at">@Context Builder</span> I need more on ${first(gp)} before we draft.` : `<span class="at">@Outreach Agent</span> please draft.`}
+    { ag: "Strategy", body: `Mapped everyone to your goals: ${countTxt}. ${gp ? `<span class="at">@Planner</span> I need more on ${first(gp)} before we draft.` : `<span class="at">@Outreach</span> please draft.`}
       <span class="recall">${esc(ids.slice(0, 3).map((id) => person(id).rec.memo).join(" · "))}</span>` },
   ];
-  if (gp) steps.push({ ag: "Context Builder", ask: true, body: `<span class="at">@Sam</span> ${esc(gp.gapQ || `You didn't mention ${first(gp)}. What should I know?`)}${d.gapAnswer ? `<br><span class="answer">${esc(d.gapAnswer)}</span>` : ""}` });
+  if (gp) steps.push({ ag: "Planner", ask: true, body: `<span class="at">@Sam</span> ${esc(gp.gapQ || `You didn't mention ${first(gp)}. What should I know?`)}${d.gapAnswer ? `<br><span class="answer">${esc(d.gapAnswer)}</span>` : ""}` });
   const drafts = ids.filter((id) => goalOf(person(id).rec) !== "warm").length;
-  steps.push({ ag: "Outreach Agent", body: `Drafted ${plural(drafts, "follow-up", "follow-ups")}. They're waiting for your approval.<span class="recall">Sam writes short emails that lead with a number (learned at first scan)</span>` });
+  steps.push({ ag: "Outreach", body: `Drafted ${plural(drafts, "follow-up", "follow-ups")}. They're waiting for your approval.<span class="recall">Sam writes short emails that lead with a number (learned at first scan)</span>` });
   return steps;
 }
 function viewRun() {
@@ -1435,12 +1467,12 @@ function send() {
   d.ex = { ...d.ex, ...extract(d.notes, d.picked) };
   d.gap = d.picked.find((id) => words(d.ex[id].facts) < 8) || null;
   d.phase = "working"; d.i = 0;
-  moveItem("W-11", "doing", "Context Builder");
-  d.picked.forEach((id) => { const wid = "W-" + String(S.nextW++).padStart(2, "0"); d.items[id] = wid; S.board.unshift({ id: wid, title: `Follow up: ${person(id).name}`, col: "todo", owner: "Relationship Strategist" }); });
+  moveItem("W-11", "doing", "Planner");
+  d.picked.forEach((id) => { const wid = "W-" + String(S.nextW++).padStart(2, "0"); d.items[id] = wid; S.board.unshift({ id: wid, title: `Follow up: ${person(id).name}`, col: "todo", owner: "Strategy" }); });
   const skipped = fresh().filter((p) => !d.picked.includes(p.id));
-  d.picked.forEach((id) => { if (d.ex[id].facts.length) logMem("add", "Context Builder", `${first(person(id))}: ${d.ex[id].facts.join(" ")}`); });
-  logMem("cognify", "Memory Agent", `Linked ${d.picked.map((id) => first(person(id))).join(", ")} to companies and goals`);
-  if (skipped.length) logMem("add", "Context Builder", `Kept in memory, no outreach: ${skipped.map(first).join(", ")}`);
+  d.picked.forEach((id) => { if (d.ex[id].facts.length) logMem("add", "Planner", `${first(person(id))}: ${d.ex[id].facts.join(" ")}`); });
+  logMem("cognify", "Planner", `Linked ${d.picked.map((id) => first(person(id))).join(", ")} to companies and goals`);
+  if (skipped.length) logMem("add", "Planner", `Kept in memory, no outreach: ${skipped.map(first).join(", ")}`);
   render(false);
   timer = setTimeout(tick, 1100);
 }
@@ -1454,14 +1486,14 @@ function tick() {
   if (!nx) return finish();
   if (nx.ask) {
     d.phase = "ask";
-    if (S.view !== "debrief") toast("🧩 Context Builder has a question for you");
-    moveItem("W-11", "human", "Context Builder", `Question for Sam: ${first(person(d.gap))}`);
+    if (S.view !== "debrief") toast("🧭 Planner has a question for you");
+    moveItem("W-11", "human", "Planner", `Question for Sam: ${first(person(d.gap))}`);
     render();
     return;
   }
   Object.values(d.items).forEach((w) => moveItem(w, "doing", nx.ag));
-  if (nx.ag === "Relationship Strategist") logMem("search", "Relationship Strategist", `“goals and pipeline” → ${d.picked.slice(0, 3).map((id) => person(id).rec.memo).join("; ")}`);
-  if (nx.ag === "Outreach Agent") logMem("search", "Outreach Agent", "“Sam's email style” → short, lead with a number");
+  if (nx.ag === "Strategy") logMem("search", "Strategy", `“goals and pipeline” → ${d.picked.slice(0, 3).map((id) => person(id).rec.memo).join("; ")}`);
+  if (nx.ag === "Outreach") logMem("search", "Outreach", "“Sam's email style” → short, lead with a number");
   render();
   timer = setTimeout(tick, 1100);
 }
@@ -1471,13 +1503,13 @@ function answerGap(text) {
   d.gapAnswer = text;
   d.ex[d.gap].facts.push(text);
   const p = person(d.gap);
-  logMem("add", "Context Builder", `${first(p)}: ${text}`);
+  logMem("add", "Planner", `${first(p)}: ${text}`);
   if (NEGATIVE_RE.test(text)) p.rec = { ...p.rec, score: Math.max(2, p.rec.score - 4), action: "No outreach for now. Kept in memory.", why: `You said “${text}”. ${first(p)} stays in memory without a follow-up.` };
   d.phase = "working";
-  moveItem("W-11", "doing", "Outreach Agent", "Weekly debrief with Sam");
+  moveItem("W-11", "doing", "Outreach", "Weekly debrief with Sam");
   d.i++;
-  Object.values(d.items).forEach((w) => moveItem(w, "doing", "Outreach Agent"));
-  logMem("search", "Outreach Agent", "“Sam's email style” → short, lead with a number");
+  Object.values(d.items).forEach((w) => moveItem(w, "doing", "Outreach"));
+  logMem("search", "Outreach", "“Sam's email style” → short, lead with a number");
   render();
   timer = setTimeout(tick, 1100);
 }
@@ -1485,12 +1517,12 @@ function finish() {
   const d = S.d;
   d.phase = "done";
   (d.round || []).forEach((id) => (person(id).debriefed = true));
-  moveItem("W-11", "done", "Context Builder", "Weekly debrief with Sam");
+  moveItem("W-11", "done", "Planner", "Weekly debrief with Sam");
   S.next.forEach((n) => (n.isNew = false));
   d.picked.forEach((id) => {
     const p = person(id);
     const warm = goalOf(p.rec) === "warm";
-    moveItem(d.items[id], warm ? "done" : "human", "Outreach Agent", warm ? `Keep warm: ${p.name}` : undefined);
+    moveItem(d.items[id], warm ? "done" : "human", "Outreach", warm ? `Keep warm: ${p.name}` : undefined);
     S.next.push({ id, personId: id, status: "open", isNew: true, wid: d.items[id], tokens: 2140, cost: 0.03 });
     if (d.ex[id].promises.length && p.promise) {
       const kind = d.ex[id].promises[0].kind;
@@ -1537,7 +1569,7 @@ function nxItem(n) {
     ${recallText ? `<p class="mem-line"><b>Remembered from Cognee:</b> ${esc(recallText)}</p>` : ""}
     <div class="step"><span class="label">Next step</span><span>${esc(r.action)}</span></div>
     ${draft}${acts}
-    ${warm ? "" : `<div class="band-line"><span>${n.wid} · waiting on you</span><span>5 agents · ${fmtK(n.tokens)} tok · ${fmt$(n.cost)}</span><a href="https://app.band.ai" target="_blank" rel="noopener">Band ↗</a></div>`}</li>`;
+    ${warm ? "" : `<div class="band-line"><span>${n.wid} · waiting on you</span><span>4 agents · ${fmtK(n.tokens)} tok · ${fmt$(n.cost)}</span><a href="https://app.band.ai" target="_blank" rel="noopener">Band ↗</a></div>`}</li>`;
 }
 /* High priority = a ready draft scored 8+, or a promise with a due date. Everything else lives in Network. */
 const HOME_LIMIT = 4;
@@ -1582,7 +1614,7 @@ function viewMoves() {
 const NEW_SOURCE_PEOPLE = { linkedin: 140, calendar: 60, gmail: 210, contacts: 85 };
 function newRound() {
   S.d = { phase: "pick", picked: [], notes: "", ex: S.d.ex, gap: null, gapAnswer: null, i: 0, items: {}, round: [] };
-  moveItem("W-11", "todo", "Context Builder", "Debrief: new contacts");
+  moveItem("W-11", "todo", "Planner", "Debrief: new contacts");
 }
 function addContact() {
   const a = S.net.add;
@@ -1603,7 +1635,7 @@ function addContact() {
       research: `${co}: profile and recent news pulled`, memo: "Added by Sam today",
       draft: `Hi ${fn},\n\nGreat meeting you${where ? ` at ${where}` : ""}. I'd love to keep the conversation going. Do you have 20 minutes next week?\n\nSam` } });
   S.memStats.people += 1;
-  logMem("add", "Context Builder", `New contact from Sam: ${name}, ${role} at ${co}${where ? ` (met: ${where})` : ""}`);
+  logMem("add", "Planner", `New contact from Sam: ${name}, ${role} at ${co}${where ? ` (met: ${where})` : ""}`);
   if (S.d.phase === "done") newRound();
   S.net.add = { name: "", role: "", co: "", where: "" };
   render();
@@ -1616,9 +1648,9 @@ function connectMore(id) {
   S.onb.sources.push(id);
   const n = NEW_SOURCE_PEOPLE[id] || 50;
   S.memStats.people += n;
-  bill("Research Agent", 6);
-  logMem("add", "Research Agent", `Connected ${s.nm}: ${n} people not already in memory`);
-  logMem("cognify", "Memory Agent", `Merged ${s.nm} contacts into the graph`);
+  bill("Research", 6);
+  logMem("add", "Research", `Connected ${s.nm}: ${n} people not already in memory`);
+  logMem("cognify", "Planner", `Merged ${s.nm} contacts into the graph`);
   render();
   toast(`${s.nm} connected. ${n} new people added to memory.`);
 }
@@ -1629,7 +1661,7 @@ function netStatus(p) {
   const n = S.next.find((x) => x.personId === p.id);
   const owe = S.promises.find((x) => x.pid === p.id && x.kind === "owe");
   if (n) {
-    if (n.status === "approved") return { key: "done", cls: "done", label: "Followed up", what: "Follow-up approved today. Outreach Agent queued the send.", n };
+    if (n.status === "approved") return { key: "done", cls: "done", label: "Followed up", what: "Follow-up approved today. Outreach queued the send.", n };
     if (n.status === "snoozed") return { key: "hold", cls: "skipped", label: "Snoozed", what: "Snoozed until Oct 27.", n };
     if (goalOf(p.rec) === "warm") return { key: "hold", cls: "skipped", label: "Keep warm", what: p.rec.why, n };
     return { key: "waiting", cls: "new", label: "Needs you", what: owe ? `You owe: ${owe.t.toLowerCase()}${owe.due ? ` (${owe.due.toLowerCase()})` : ""}` : `Next: ${p.rec.action.toLowerCase()}`, n };
@@ -1878,7 +1910,7 @@ async function ask(text, voice = false) {
   c.msgs.push(m);
   c.busy = true; c.draft = "";
   renderChat();
-  const rules = `You are NetworkOS, a founder's AI agent team (Relationship Strategist, Context Builder, Research Agent, Outreach Agent) that keeps track of their relationships. The founder is Sam. Today is Tuesday, Oct 20.
+  const rules = `You are NetworkOS, a founder's AI agent team (Planner as the lead, Research, Strategy, Outreach) that keeps track of their relationships. The founder is Sam. Today is Tuesday, Oct 20.
 Answer Sam's latest message using only the network data below. Reply the way you'd talk out loud: 1 to 4 short sentences, plain text, no markdown, no bullet symbols. Name the people and the concrete next step. If something isn't in the data, say you don't know yet and suggest the weekly debrief. Never say a message was sent: every message waits for Sam's approval.
 
 NETWORK DATA
@@ -1943,17 +1975,19 @@ function viewAgents() {
   const agents = AGENTS.map((a) => {
     const [s, t, c] = S.usage[a.name];
     tot[0] += s; tot[1] += t; tot[2] += c;
+    const [msgs, tools, errs] = bandStats(a.name);
     return `<li><span class="mono ${active === a.name ? "on" : ""}">${a.icon}</span>
-      <div class="txt"><div class="nm">${a.name} <span class="harness">${a.harness}</span></div><div class="rl">${a.role}</div></div>
+      <div class="txt"><div class="nm">${a.full}${a.lead ? ' <span class="harness">lead</span>' : ""}</div><div class="handle">${a.handle}</div><div class="rl">${a.role}</div>
+        <div class="bstats"><span><b>${num(msgs)}</b> Messages</span><span><b>${num(tools)}</b> Tool calls</span><span class="${errs ? "err" : ""}"><b>${errs}</b> Errors</span></div></div>
       <div class="num"><b>${fmt$(c)}</b><br>${fmtK(t)} · ${s} sess</div></li>`;
   }).join("");
   return `<div class="screen gut">
     <section><span class="eyebrow">Band room #sam-network</span><h1>Your agent team</h1>
-      <p class="lede">Five agents on four harnesses share one plan and one memory. They ask you before anything goes out.</p></section>
+      <p class="lede">Four agents in Band, led by the Planner, share one plan and one memory. They ask you before anything goes out.</p></section>
     <section class="card nudge"><div class="txt"><b>Band Desktop</b>Watch a run live: who's working, every handoff, tokens and cost, and where you approve.</div><button class="btn sm" type="button" data-nav="band">Open</button></section>
-    <section><h2>Agents <small>from Band</small></h2>
+    <section><h2>Agents <small>External · 4 in Band</small> <span data-livebadge>${liveBadge()}</span></h2>
       <ul class="card agents">${agents}<li class="total"><span class="mono">Σ</span><div class="txt"><div class="nm">Room total</div><div class="rl">Since you joined</div></div><div class="num"><b>${fmt$(tot[2])}</b><br>${fmtK(tot[1])} · ${tot[0]} sess</div></li></ul></section>
-    <section><h2>Plan <small>posted by Relationship Strategist</small></h2>
+    <section><h2>Plan <small>posted by Planner</small></h2>
       <div class="card plan"><span class="label">Week of Oct 20</span><ol>
         <li>Get Sam's approval on first messages to the top picks from the scan.</li>
         <li>Run Sam's first weekly debrief on the 6 people met since Oct 6.</li>
@@ -1965,7 +1999,7 @@ function viewAgents() {
           `<div class="wi"><span class="wid">${w.id}</span><span>${esc(w.title)}</span><span class="ow">${k === "human" ? "Waiting on Sam" : w.owner}</span></div>`).join("") : '<span class="none">Nothing here</span>'}</div>`;
       }).join("")}</div></section>
     <section><h2>Memory <small>Cognee</small></h2>
-      <div class="card"><div class="memhead"><span>Shared by all 5 agents. Survives restarts.</span>
+      <div class="card"><div class="memhead"><span>Shared by all 4 agents. Survives restarts.</span>
         <button class="btn sm quiet" id="restart" type="button" ${S.restarted || working() ? "disabled" : ""}>Restart sessions</button></div>
         <ul class="memlog" aria-live="polite">${S.log.map((l) => `<li><span class="op ${l.op === "forget" ? "forget" : l.op === "system" ? "sys" : ""}">${l.op}</span><span><span class="ag">${l.ag}:</span> ${esc(l.t)}</span></li>`).join("")}</ul></div></section>
     <p class="fine"><span>Example people, companies and usage. Nothing is sent.</span></p>
@@ -1978,9 +2012,9 @@ function restart() {
   render();
   toast("Agent sessions restarted");
   setTimeout(() => {
-    logMem("search", "Relationship Strategist", "“promises with a trigger” → Marcus: “send me the deck at 400 customers” (LinkedIn DM, Oct 2)");
-    logMem("search", "Relationship Strategist", "“customer count” → 410 paying customers (Stripe, Oct 19)");
-    bill("Relationship Strategist");
+    logMem("search", "Strategy", "“promises with a trigger” → Marcus: “send me the deck at 400 customers” (LinkedIn DM, Oct 2)");
+    logMem("search", "Strategy", "“customer count” → 410 paying customers (Stripe, Oct 19)");
+    bill("Strategy");
     const m = person("marcus");
     m.rec = { ...m.rec, score: 10, why: "Marcus asked to see the deck once you hit 400 customers. You're at 410, so his condition is met.",
       action: "Send the deck today", recall: "Marcus: “Send me the deck when you hit 400 customers” (LinkedIn DM, Oct 2, recalled after restart)",
@@ -1991,7 +2025,7 @@ function restart() {
     n = S.next.find((x) => x.id === "marcus");
     n.recalled = true; n.isNew = false; n.draft = undefined; n.pending = undefined; n.status = "open"; moveItem(n.wid, "human");
     render();
-    toast("Relationship Strategist recalled a promise. Marcus is now 10/10.");
+    toast("Strategy recalled a promise. Marcus is now 10/10.");
   }, 1100);
 }
 
@@ -2001,19 +2035,18 @@ function restart() {
    agent.tokens, session time → agent.sec, Approve/Edit/Reject → decision posted to Band,
    the memory save → a Cognee write, ratePer1k → real per-model pricing. */
 const BAND_AGENTS = [
-  { id: "context", icon: "🧩", name: "Context Builder", ratePer1k: 0.024 },
-  { id: "research", icon: "🔎", name: "Research Agent", ratePer1k: 0.031 },
-  { id: "strategist", icon: "🎯", name: "Relationship Strategist", ratePer1k: 0.033 },
-  { id: "outreach", icon: "✉️", name: "Outreach Agent", ratePer1k: 0.031 },
-  { id: "memory", icon: "🧠", name: "Memory Agent", ratePer1k: 0.033 },
+  { id: "planner", icon: "🧭", name: "Planner", ratePer1k: 0.028 },
+  { id: "research", icon: "🔎", name: "Research", ratePer1k: 0.031 },
+  { id: "strategist", icon: "🎯", name: "Strategy", ratePer1k: 0.033 },
+  { id: "outreach", icon: "✉️", name: "Outreach", ratePer1k: 0.031 },
 ];
 const BAND_TASKS = [
-  { id: "t1", label: "Parse Sam's note about Priya", agent: "context" },
-  { id: "t2", label: "Recall what we know about Northbeam", agent: "memory" },
+  { id: "t1", label: "Parse Sam's note about Priya", agent: "planner" },
+  { id: "t2", label: "Recall what we know about Northbeam", agent: "planner" },
   { id: "t3", label: "Research Priya and Northbeam", agent: "research" },
   { id: "t4", label: "Score Priya against the raise", agent: "strategist" },
   { id: "t5", label: "Draft the follow-up", agent: "outreach" },
-  { id: "t6", label: "Save the outcome to memory", agent: "memory" },
+  { id: "t6", label: "Save the outcome to memory", agent: "planner" },
 ];
 const TASK_ORDER = ["todo", "progress", "review", "done"];
 const TASK_LABEL = { todo: "To do", progress: "In progress", review: "Review", done: "Done" };
@@ -2021,23 +2054,23 @@ const BAND_INPUT = "Met Priya Shah from Northbeam at Founders Summit. She asked 
 const BAND_DRAFT = "Hi Priya,\n\nGreat meeting you at Founders Summit. As promised, here's the Ledgerly deck. We're at 410 paying freelancers, growing 22% a month.\n\nWould you have 30 minutes next week?\n\nSam";
 const BAND_REVISED = "Hi Priya,\n\nThanks for the chat at Founders Summit. Deck attached: 410 paying freelancers, up 22% a month.\n\nOpen to 30 minutes next week?\n\nSam";
 const BAND_STEPS = [
-  { at: 0.4, agent: "context", task: "t1", doing: "Reading your note…", verb: "Built context", dur: 2.4, tokens: 2100,
+  { at: 0.4, agent: "planner", task: "t1", doing: "Reading your note…", verb: "Built context", dur: 2.4, tokens: 2100,
     lines: ["Person: Priya Shah, Partner at Northbeam Ventures", "Topics: traction, pre-seed fintech", "Promise: send the deck this week"],
-    handoff: "Context Builder handed Priya's profile to Memory Agent." },
-  { at: 3.1, agent: "memory", task: "t2", doing: "Searching memory…", verb: "Recalled", dur: 1.9, tokens: 2420,
+    handoff: "Planner opened W-12 in Band and assigned Research, Strategy and Outreach." },
+  { at: 3.1, agent: "planner", task: "t2", doing: "Searching memory…", verb: "Recalled", dur: 1.9, tokens: 2420,
     lines: ["Northbeam is on Sam's target list (Sep 28)", "Marcus Lee co-invested with Northbeam in 2025", "Sam writes short emails that lead with a number"],
-    handoff: "Memory Agent passed 3 memories to Research Agent." },
+    handoff: "Planner passed 3 memories to Research." },
   { at: 5.3, agent: "research", task: "t3", doing: "Looking up Priya and Northbeam…", verb: "Found", dur: 3.0, tokens: 5800,
     lines: ["Northbeam led 3 fintech pre-seeds in 2026", "Priya made partner in March and runs the SMB thesis", "Warm path: Marcus Lee knows her"],
-    handoff: "Research Agent sent its findings to Relationship Strategist." },
+    handoff: "Research sent its findings to Strategy." },
   { at: 8.6, agent: "strategist", task: "t4", doing: "Scoring against your goals…", verb: "Prioritized", dur: 2.2, tokens: 4200,
     lines: ["9/10 for the $1.2M pre-seed", "Promise due Oct 23, so follow up within 48 hours", "Next step: send the deck and ask for 30 minutes"],
-    handoff: "Relationship Strategist asked Outreach Agent to draft the follow-up." },
+    handoff: "Strategy asked Outreach to draft the follow-up." },
   { at: 11.1, agent: "outreach", task: "t5", doing: "Writing the follow-up…", verb: "Drafted", dur: 2.6, tokens: 3900, review: true,
     lines: ["Short email that leads with traction", "Deck attached, asks for a 30-minute call"] },
 ];
 const BAND_APPROVAL_AT = 13.8;
-const BAND_PRESET_SEC = { context: 41, research: 72, strategist: 48, outreach: 55, memory: 22 };
+const BAND_PRESET_SEC = { planner: 63, research: 72, strategist: 48, outreach: 55 };
 const bAgent = (id) => BAND_AGENTS.find((a) => a.id === id);
 
 function bandFresh() {
@@ -2132,14 +2165,14 @@ function needsYouHTML() {
   let html = "";
   if (card) html += `<section class="card needs" aria-label="Needs your approval">
       <div class="needs-hd"><span class="label">Needs your approval</span><button class="linkish" type="button" data-nav="band">See the run</button></div>
-      <div class="needs-who"><span aria-hidden="true">✉️</span> <b>Outreach Agent</b> wants to send a message to Priya Shah</div>
+      <div class="needs-who"><span aria-hidden="true">✉️</span> <b>Outreach</b> wants to send a message to Priya Shah</div>
       <div class="draft clamp">${esc(card.draft)}</div>
       <div class="acts3"><button class="btn sm" type="button" data-act="band-approve">Approve</button><button class="btn sm quiet" type="button" data-act="band-edit-home">Edit</button><button class="btn sm quiet" type="button" data-act="band-reject">Reject</button></div>
-      <div class="band-line"><span>Band #sam-network · 5 agents</span><span>${(t.tokens / 1000).toFixed(1)}k tok · $${t.cost.toFixed(2)}</span></div>
+      <div class="band-line"><span>Band #sam-network · 4 agents</span><span>${(t.tokens / 1000).toFixed(1)}k tok · $${t.cost.toFixed(2)}</span></div>
     </section>`;
   if (ask) html += `<section class="card needs" aria-label="Your agents have a question">
       <div class="needs-hd"><span class="label">Your agents have a question</span><button class="linkish" type="button" data-nav="debrief">Open debrief</button></div>
-      <div class="needs-who"><span aria-hidden="true">🧩</span> <b>Context Builder</b>: ${esc(ask.gapQ || `You didn't mention ${first(ask)}. What should I know?`)}</div>
+      <div class="needs-who"><span aria-hidden="true">🧭</span> <b>Planner</b>: ${esc(ask.gapQ || `You didn't mention ${first(ask)}. What should I know?`)}</div>
       <div class="chips-row" style="padding:0">${(ask.gapC || ["Worth a follow-up", "Just a contact", "Not a priority"]).map((c) => `<button type="button" data-say="${esc(c)}">${esc(c)}</button>`).join("")}</div>
     </section>`;
   if (B.running) html += `<button class="card live-strip" type="button" data-nav="band" aria-label="Open Band Desktop">
@@ -2149,8 +2182,8 @@ function needsYouHTML() {
 }
 function alertHTML() {
   if (["moves", "band", "landing", "onboard", "demo"].includes(S.view)) return "";
-  if (bandPendingCard()) return `<span aria-hidden="true">✉️</span><span class="atxt"><b>Outreach Agent</b> needs your approval</span><button class="btn sm" type="button" data-nav="moves">Review</button>`;
-  if (S.d.phase === "ask" && S.view !== "debrief") return `<span aria-hidden="true">🧩</span><span class="atxt"><b>Context Builder</b> has a question</span><button class="btn sm" type="button" data-nav="moves">Answer</button>`;
+  if (bandPendingCard()) return `<span aria-hidden="true">✉️</span><span class="atxt"><b>Outreach</b> needs your approval</span><button class="btn sm" type="button" data-nav="moves">Review</button>`;
+  if (S.d.phase === "ask" && S.view !== "debrief") return `<span aria-hidden="true">🧭</span><span class="atxt"><b>Planner</b> has a question</span><button class="btn sm" type="button" data-nav="moves">Answer</button>`;
   return "";
 }
 function bandRender() {
@@ -2165,8 +2198,8 @@ setInterval(() => {
   B.seen = B.phase;
   if (S.view === "band") { bandRender(); return; }
   const inApp = !["landing", "onboard", "demo"].includes(S.view);
-  if (inApp && B.phase === "waiting" && prev !== "waiting") toast("✉️ Outreach Agent needs your approval");
-  if (inApp && B.phase === "complete" && prev !== "complete") toast("Run complete. Memory Agent saved the outcome.");
+  if (inApp && B.phase === "waiting" && prev !== "waiting") toast("✉️ Outreach needs your approval");
+  if (inApp && B.phase === "complete" && prev !== "complete") toast("Run complete. Planner saved the outcome.");
   if (prev !== B.phase || S.view === "moves") render(); else bandLive();
 }, 100);
 setInterval(() => {
@@ -2180,18 +2213,19 @@ function bandDecide(kind) {
   const card = [...B.items].reverse().find((i) => i.type === "approval" && !i.decided);
   if (!card) return;
   if (kind === "approve") {
+    liveApprove();
     card.decided = "approved";
     B.items.push({ type: "note", text: "✓ You approved the message." });
     B.tasks.t5 = "done";
     Object.assign(B.agents.outreach, { status: "done", task: "Message approved" });
-    B.items.push({ type: "handoff", text: "Memory Agent is saving the approved outcome." });
+    B.items.push({ type: "handoff", text: "Planner is saving the approved outcome." });
     const s = { agent: "memory", task: "t6", doing: "Saving the outcome…", verb: "Saved outcome to memory", dur: 1.6, tokens: 380,
       lines: ["Priya: deck sent Oct 20. Follow up if no reply by Oct 27.", "Promise to Priya marked as kept."] };
     bq(B, B.clock + 0.4, () => bandStart(B, s));
     bq(B, B.clock + 0.4 + s.dur, () => bandEnd(B, s));
   } else {
     card.decided = "rejected";
-    B.items.push({ type: "note", text: "✕ You rejected the draft. It went back to Outreach Agent." });
+    B.items.push({ type: "note", text: "✕ You rejected the draft. It went back to Outreach." });
     B.tasks.t5 = "progress";
     B.draft = BAND_REVISED;
     const s = { agent: "outreach", task: "t5", doing: "Revising the draft…", verb: "Revised draft", dur: 2.2, tokens: 600, review: true,
@@ -2219,7 +2253,7 @@ function bandItemHTML(it, lastStepId) {
   if (it.type === "approval") {
     const live = !it.decided;
     return `<div class="bperm ${live ? "" : "decided"}">
-      <div class="hd"><span aria-hidden="true">✉️</span> Outreach Agent wants to send a message</div>
+      <div class="hd"><span aria-hidden="true">✉️</span> Outreach wants to send a message</div>
       <div class="meta">To Priya Shah · Email${it.decided ? ` · ${it.decided === "approved" ? "Approved" : "Rejected"}` : ""}</div>
       ${live && B.editing ? `<textarea class="draft-edit" id="band-draft" aria-label="Edit the draft">${esc(B.draft)}</textarea>
         <div class="acts3"><button class="btn sm" type="button" data-act="band-save">Save edit</button><button class="btn sm quiet" type="button" data-act="band-cancel">Cancel</button></div>`
@@ -2237,6 +2271,7 @@ function viewBand() {
   return `<div class="screen gut">
     <section><span class="eyebrow">Band room #sam-network · demo run</span><h1>Agent team, live</h1>
       <p class="lede">Which agent is doing what, how work is handed off, what it costs, and where you step in.</p></section>
+    <section class="card live" id="live">${liveInner()}</section>
     <section class="card btrans" id="btrans" aria-live="polite">${B.items.length ? B.items.map((it) => bandItemHTML(it, lastStep && lastStep.id)).join("") : '<p class="empty" style="padding:8px 0">The team is idle. Press Run to watch it work.</p>'}</section>
     <section><h2>Tasks <small>tap to move one forward</small></h2>
       <ul class="card btasks">${BAND_TASKS.map((tk) => { const st = B.tasks[tk.id]; const a = bAgent(tk.agent);
@@ -2248,6 +2283,94 @@ function viewBand() {
           <div class="rl">${esc(g.task)}</div><div class="bmeta" data-bmeta="${a.id}">${bMeta(a.id)}</div></div></li>`; }).join("")}
         <li class="total"><span class="bico big" aria-hidden="true">Σ</span><div class="txt"><div class="nm">Total usage</div><div class="bmeta" id="band-total">${t.tokens.toLocaleString("en-US")} tokens · $${t.cost.toFixed(2)}</div></div></li></ul></section>
   </div>`;
+}
+
+
+/* ---------- Live: the same note, run by the real agents ----------
+   The people and numbers on this page are mock data. Pressing Run also sends the note to the agents service
+   (/api/demo): the Planner opens a Band room and hands off to Research, Strategy and Outreach, Cognee recalls what it
+   knows and keeps the note, and the real draft waits here for approval. */
+const LIVE_NAMES = { Planner: "Planner", Research: "Research", Strategist: "Strategy", Outreach: "Outreach" };
+const LIVE_STAGES = ["Planner", "Research", "Strategist", "Outreach"];
+const LIVE = { status: "checking", band: false, agents: {}, run: null, error: "", poll: null, extra: 0 };
+async function liveJSON(url, init) {
+  const r = await fetch(url, init);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || d.detail || `The agents service answered ${r.status}`);
+  return d;
+}
+async function liveHealth() {
+  try {
+    const d = await liveJSON("/api/demo");
+    Object.assign(LIVE, { status: "ready", band: !!d.band, agents: d.band_agents || {}, error: "" });
+  } catch (e) { Object.assign(LIVE, { status: "offline", error: e.message }); }
+  liveRender();
+}
+async function liveStart(text) {
+  clearTimeout(LIVE.poll);
+  Object.assign(LIVE, { status: "starting", run: null, error: "", extra: 0 });
+  liveRender();
+  try {
+    const d = await liveJSON("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    LIVE.status = "running";
+    livePoll(d.run_id);
+  } catch (e) { Object.assign(LIVE, { status: "offline", error: e.message }); liveRender(); }
+}
+async function livePoll(id) {
+  try { LIVE.run = await liveJSON(`/api/demo?run=${encodeURIComponent(id)}`); LIVE.error = ""; } catch (e) { LIVE.error = e.message; }
+  liveRender();
+  const r = LIVE.run;
+  // keep polling while it works, and a little longer for the Band room id to land
+  if (!r || r.status === "running" || (!r.band_room && LIVE.band && LIVE.extra++ < 8)) LIVE.poll = setTimeout(() => livePoll(id), 1500);
+}
+async function liveApprove() {
+  const r = LIVE.run;
+  if (!r || r.status !== "waiting") return;
+  try {
+    LIVE.run = await liveJSON("/api/demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approve: r.id }) });
+    toast("Approved on the real agents. Cognee is keeping the outcome.");
+  } catch (e) { LIVE.error = e.message; }
+  liveRender();
+}
+function liveBadge() {
+  if (LIVE.status === "checking") return '<span class="lbadge">Checking Band…</span>';
+  if (LIVE.status === "offline") return '<span class="lbadge off">Agents service offline</span>';
+  const n = Object.keys(LIVE.agents).length;
+  return LIVE.band ? `<span class="lbadge on">● Band connected · ${n} agents</span>` : '<span class="lbadge off">Band keys not set</span>';
+}
+function liveInner() {
+  const r = LIVE.run;
+  const head = `<div class="lhead"><span class="label">Live on your real agents</span>${liveBadge()}</div>`;
+  if (!r) {
+    const msg = LIVE.status === "starting" ? "Sending the note to the Planner…"
+      : LIVE.error ? esc(LIVE.error)
+      : "Press <b>Run</b>. The same note goes to RelationshipOS Planner, Research, Strategy and Outreach in Band, and Cognee recalls and keeps it. Everything else on this page is example data.";
+    return head + `<p class="lnote">${msg}</p>`;
+  }
+  const notes = r.notes || [];
+  const steps = LIVE_STAGES.map((ag, i) => {
+    const st = r.status === "failed" && r.stage === i ? "fail" : r.stage > i ? "done" : r.stage === i && r.status === "running" ? "working" : "wait";
+    const lines = (notes[i] || []).filter(Boolean).map((t) => `<span>${esc(t)}</span>`).join("");
+    return `<li class="${st}"><b>${LIVE_NAMES[ag]}</b>${i === 0 ? ' <span class="harness">lead</span>' : ""}<div>${lines || (st === "working" ? "<span>Working…</span>" : "")}</div></li>`;
+  }).join("");
+  const hand = (r.handoffs || []).map((h) => `<li>${esc(LIVE_NAMES[h.from] || h.from)} → ${esc(LIVE_NAMES[h.to] || h.to)}: ${esc(h.what)}</li>`).join("");
+  const mem = notes[1] && notes[1].filter(Boolean).length ? notes[1].filter(Boolean).map(esc).join(" · ") : r.stage >= 1 ? "Saving the note…" : "Waiting for the Planner";
+  const room = r.band_room ? `Band room <b>${esc(r.band_room)}</b> <a href="https://app.band.ai" target="_blank" rel="noopener">Open in Band ↗</a>`
+    : LIVE.band ? "Opening a Band room…" : "Band is off on the agents service, so handoffs are only recorded here.";
+  const draft = r.draft_body ? `<div class="ldraft"><span class="label">Real draft${r.draft_subject ? `: ${esc(r.draft_subject)}` : ""}</span><pre>${esc(r.draft_body)}</pre>
+    ${r.status === "waiting" ? '<button class="btn sm" type="button" data-act="live-approve">Approve on the real agents</button>' : r.status === "approved" ? '<span class="ok">✓ Approved. The outcome is in Cognee.</span>' : ""}</div>` : "";
+  const answer = r.answer ? `<p class="lnote">${esc(r.answer)}</p>` : "";
+  const err = r.error || LIVE.error ? `<p class="lnote err">${esc(r.error || LIVE.error)}</p>` : "";
+  return head + `<ol class="lsteps">${steps}</ol>
+    <p class="lline"><span class="tag">Cognee</span>${mem}</p>
+    <p class="lline"><span class="tag">Band</span>${room}</p>
+    ${hand ? `<ul class="lhand">${hand}</ul>` : ""}${answer}${draft}${err}
+    <p class="lfine">Run ${esc(r.id)} · ${esc(r.status)}${r.cost_usd ? ` · $${r.cost_usd.toFixed(4)}` : ""}</p>`;
+}
+function liveRender() {
+  const el = document.getElementById("live");
+  if (el) el.innerHTML = liveInner();
+  document.querySelectorAll("[data-livebadge]").forEach((b) => (b.innerHTML = liveBadge()));
 }
 
 /* ---------- Render ---------- */
@@ -2338,7 +2461,7 @@ document.addEventListener("click", (e) => {
     if (!S.next.find((x) => x.personId === p.id)) {
       if (goalOf(p.rec) === "warm") p.rec = { ...p.rec, score: 5 };
       addFollowUp(p);
-      logMem("add", "Relationship Strategist", `Sam added ${first(p)} to the plan`);
+      logMem("add", "Strategy", `Sam added ${first(p)} to the plan`);
     }
     render();
     toast(`${p.name} added to your plan`);
@@ -2364,7 +2487,7 @@ document.addEventListener("click", (e) => {
     stopDictation();
     p.notes = [...(p.notes || []), v];
     S.memStats.facts += 1;
-    logMem("add", "Context Builder", `${first(p)}: ${v}`);
+    logMem("add", "Planner", `${first(p)}: ${v}`);
     render(); toast("Saved to memory");
   }
   else if (ds.act === "forget-ask") { S.forgetAsk = true; render(); }
@@ -2373,15 +2496,16 @@ document.addEventListener("click", (e) => {
     const p = person(S.personId);
     p.forgotten = true;
     S.promises = S.promises.filter((x) => x.pid !== p.id);
-    S.next.filter((n) => n.personId === p.id).forEach((n) => { n.status = "forgotten"; moveItem(n.wid, "done", "Memory Agent", `Forgotten: ${p.name}`); });
+    S.next.filter((n) => n.personId === p.id).forEach((n) => { n.status = "forgotten"; moveItem(n.wid, "done", "Planner", `Forgotten: ${p.name}`); });
     S.memStats.people = Math.max(0, S.memStats.people - 1);
-    logMem("forget", "Memory Agent", `Removed ${p.name} from memory at Sam's request`);
+    logMem("forget", "Planner", `Removed ${p.name} from memory at Sam's request`);
     S.forgetAsk = false;
     go("network"); toast(`${p.name} forgotten`);
   }
   else if (ds.act === "ai-open") openSheet(true);
   else if (ds.act === "band-back") go("agents");
-  else if (ds.act === "band-run") { B = bandFresh(); bandLoadScript(B); B.running = true; B.phase = "running"; render(false); }
+  else if (ds.act === "band-run") { B = bandFresh(); bandLoadScript(B); B.running = true; B.phase = "running"; render(false); liveStart(BAND_INPUT); }
+  else if (ds.act === "live-approve") liveApprove();
   else if (ds.act === "band-pause") { if (B.running) { B.paused = !B.paused; render(); } }
   else if (ds.act === "band-reset") { B = bandFresh(); render(false); }
   else if (ds.act === "band-approve") bandDecide("approve");
@@ -2428,7 +2552,7 @@ document.addEventListener("click", (e) => {
     if (x.editing) {
       const v = $(`draft-${x.id}`).value;
       x.pending = undefined;
-      if (v !== (x.draft ?? recOf(x).draft)) { x.draft = v; logMem("improve", "Memory Agent", "Learned from your edit: keep openers short, lead with the number"); toast("Outreach Agent will remember this style"); }
+      if (v !== (x.draft ?? recOf(x).draft)) { x.draft = v; logMem("improve", "Planner", "Learned from your edit: keep openers short, lead with the number"); toast("Outreach will remember this style"); }
     }
     x.editing = !x.editing;
     render();
@@ -2437,16 +2561,16 @@ document.addEventListener("click", (e) => {
     const x = n(ds.approve);
     if (x.editing) x.draft = $(`draft-${x.id}`).value;
     x.status = "approved"; x.open = false; x.editing = false; x.pending = undefined;
-    moveItem(x.wid, "done", "Outreach Agent");
+    moveItem(x.wid, "done", "Outreach");
     S.promises = S.promises.filter((pr) => !(pr.kind === "owe" && pr.pid === x.personId));
     const p = person(x.personId);
-    logMem("add", "Outreach Agent", `Sent ${p.via ? `intro ask to ${first(person(p.via))} for ${first(p)}` : `follow-up to ${first(p)}`}, approved by Sam`);
+    logMem("add", "Outreach", `Sent ${p.via ? `intro ask to ${first(person(p.via))} for ${first(p)}` : `follow-up to ${first(p)}`}, approved by Sam`);
     render();
-    toast("Approved in Band. Outreach Agent queued the send.");
+    toast("Approved in Band. Outreach queued the send.");
   } else if (ds.snooze) {
     const x = n(ds.snooze);
     x.status = "snoozed";
-    moveItem(x.wid, "todo", "Relationship Strategist");
+    moveItem(x.wid, "todo", "Strategy");
     render();
     toast("Snoozed until Oct 27");
   } else if (b.id === "restart") restart();
@@ -2474,6 +2598,7 @@ document.addEventListener("input", (e) => {
 });
 
 render(false);
+liveHealth();
 </script>
 
 </body></html>

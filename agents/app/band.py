@@ -86,6 +86,12 @@ async def _post(run_id: str, frm: str, to: str, text: str, after: Optional[async
         log.warning("Band post %s → %s failed: %s", frm, to, e)
 
 
+def room_id(run_id: str) -> Optional[str]:
+    """The run's Band room once it's open, else None."""
+    task = _rooms.get(run_id)
+    return task.result() if task and task.done() and not task.cancelled() and not task.exception() else None
+
+
 def start(run: Run, title: str) -> None:
     """Open the run's Band room in the background."""
     if enabled() and run.id not in _rooms:

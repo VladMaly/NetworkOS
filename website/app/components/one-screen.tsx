@@ -268,7 +268,7 @@ export function OneScreen({ children, user }: { children?: ReactNode; user?: { n
         <a className="ly-word" href="#top">Lanyard<span>.</span></a>
         <nav>
           <a href="#how">How it works</a>
-          <a href="/networkos">NetworkOS</a>
+          <a href="/">NetworkOS</a>
           <a href="#join">Early access</a>
           {user ? (
             <a className="ly-google" href="/home">

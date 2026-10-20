@@ -1,9 +1,12 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  // The NetworkOS prototype is one self-contained page in public/; give it a clean URL.
+  // NetworkOS is the homepage: one self-contained page in public/. The old Lanyard landing lives at /lanyard.
   async rewrites() {
-    return [{ source: "/networkos", destination: "/networkos.html" }]
+    return [
+      { source: "/", destination: "/networkos.html" },
+      { source: "/networkos", destination: "/networkos.html" },
+    ]
   },
 }
 

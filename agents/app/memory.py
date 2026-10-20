@@ -11,7 +11,7 @@ from . import config  # noqa: F401  (sets Cognee's storage paths before cognee i
 import cognee
 from cognee import SearchType
 
-log = logging.getLogger("networkos.memory")
+log = logging.getLogger("relationshipos.memory")
 
 _write = asyncio.Lock()
 _pending: dict[str, asyncio.Task[None]] = {}
@@ -53,8 +53,10 @@ async def recall(user_id: str, question: str) -> str:
         return ""
     parts = []
     for r in results or []:
-        value = getattr(r, "search_result", r)
-        parts.append(value if isinstance(value, str) else str(value))
+        # Cognee returns {"dataset_name": ..., "search_result": [...]} per dataset (older versions: objects or strings).
+        value = r.get("search_result", r) if isinstance(r, dict) else getattr(r, "search_result", r)
+        for v in value if isinstance(value, list) else [value]:
+            parts.append(v if isinstance(v, str) else str(v))
     return "\n".join(p for p in parts if p).strip()
 
 

@@ -1,7 +1,7 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 
-/* Google sign-in. The user's ID everywhere in NetworkOS is their Google account ID (the `sub` claim), carried in the
+/* Google sign-in. The user's ID everywhere in RelationshipOS is their Google account ID (the `sub` claim), carried in the
    session as `user.id`. Reads AUTH_SECRET, AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET from the environment. */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],

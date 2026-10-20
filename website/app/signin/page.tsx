@@ -6,7 +6,7 @@ import { currentUser } from "../lib/session"
 import { NetMark } from "../home/icons"
 import "../home/network-os.css"
 
-export const metadata: Metadata = { title: "Sign in · NetworkOS" }
+export const metadata: Metadata = { title: "Sign in · RelationshipOS" }
 
 export default async function SignInPage() {
   await connection()
@@ -23,7 +23,7 @@ export default async function SignInPage() {
       <main className="nx-signin">
         <div className="nx-signin-card ly-pane">
           <NetMark size={52} />
-          <h1>NetworkOS</h1>
+          <h1>RelationshipOS</h1>
           <p>Your AI relationship team. It remembers everyone you meet and tells you what to do next.</p>
           {authConfigured ? (
             <form action={google}>

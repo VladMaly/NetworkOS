@@ -1,6 +1,6 @@
 # agents/
 
-The NetworkOS agents service: Planner, Research, Strategist and Outreach, with Cognee as relationship memory and SQLite for app state. Python 3.12 + FastAPI. Only the website calls it.
+The RelationshipOS agents service: Planner, Research, Strategist and Outreach, with Cognee as relationship memory and SQLite for app state. Python 3.12 + FastAPI. Only the website calls it.
 
 - How it fits together: [../docs/architecture.md](../docs/architecture.md)
 - Running and deploying it: [../docs/setup.md](../docs/setup.md)

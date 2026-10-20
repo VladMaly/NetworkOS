@@ -1,4 +1,4 @@
-# NetworkOS
+# RelationshipOS
 
 Your AI relationship team: tell it who you met and what happened, and it works out who they are, remembers what you talked about, decides what to do next and drafts a warm follow-up for you to approve.
 

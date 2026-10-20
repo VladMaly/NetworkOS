@@ -4,3 +4,4 @@ fastapi==0.156.1
 uvicorn[standard]==0.54.0
 sqlmodel==0.0.48
 python-dotenv==1.2.4
+band-sdk==6.0.1

@@ -3,11 +3,11 @@ import { redirect } from "next/navigation"
 import { connection } from "next/server"
 import { agents, agentsConfigured } from "../lib/agents"
 import { currentUser } from "../lib/session"
-import { NetworkOS } from "./network-os"
+import { RelationshipOS } from "./network-os"
 import "./network-os.css"
 
 export const metadata: Metadata = {
-  title: "NetworkOS",
+  title: "RelationshipOS",
   description: "Your AI relationship team: who to follow up with, what you promised, and a draft waiting for your approval.",
 }
 
@@ -16,7 +16,7 @@ export default async function HomePage() {
   const user = await currentUser()
   if (!user) redirect("/signin")
 
-  // Make sure the agents service knows this person; their Google ID is their NetworkOS ID.
+  // Make sure the agents service knows this person; their Google ID is their RelationshipOS ID.
   let offline: string | null = null
   if (!agentsConfigured()) offline = "The agents service isn't connected: set AGENTS_URL and AGENTS_SECRET."
   else {
@@ -28,5 +28,5 @@ export default async function HomePage() {
     }
   }
 
-  return <NetworkOS user={{ name: user.name, email: user.email, image: user.image }} offline={offline} />
+  return <RelationshipOS user={{ name: user.name, email: user.email, image: user.image }} offline={offline} />
 }

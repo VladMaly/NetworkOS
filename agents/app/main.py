@@ -25,7 +25,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="NetworkOS agents", lifespan=lifespan)
+app = FastAPI(title="RelationshipOS agents", lifespan=lifespan)
 
 
 def user_id(authorization: Annotated[str, Header()] = "", x_user_id: Annotated[str, Header()] = "") -> str:
@@ -119,7 +119,7 @@ async def capture(body: CaptureIn, uid: Uid) -> dict[str, str]:
     _user(uid)
     text = body.text.strip()
     if not text:
-        raise HTTPException(400, "Tell NetworkOS what happened or what you want to know.")
+        raise HTTPException(400, "Tell RelationshipOS what happened or what you want to know.")
     run = Run(user_id=uid, request=text[:4000])
     with session() as s:
         s.add(run)

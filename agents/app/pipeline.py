@@ -8,12 +8,13 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from . import memory
+from . import band
 from .band import handoff
 from .config import RESEARCH_WEB
 from .llm import AgentError, ask
 from .store import Contact, Interaction, Run, User, now, session
 
-log = logging.getLogger("networkos.pipeline")
+log = logging.getLogger("relationshipos.pipeline")
 
 GOALS = {"beta": "beta users", "investors": "investors", "cofounder": "a cofounder", "hiring": "hires"}
 
@@ -68,20 +69,20 @@ class Draft(BaseModel):
 
 # ── prompts ────────────────────────────────────────────────────────────
 
-PLANNER = """You are the Planner on NetworkOS, an AI relationship team for a startup founder.
+PLANNER = """You are the Planner on RelationshipOS, an AI relationship team for a startup founder.
 Read what the founder said and pull out the facts. Use only what they said; leave a field as "" when they didn't say it.
 - kind is "capture" when they describe meeting or talking with a specific person, or ask you to act on one person (draft, redraft, follow up). It is "question" when they ask something about their network as a whole, such as who to follow up with.
 - For a question, restate it in "question" and leave the person fields "".
 - met_date is an ISO date (YYYY-MM-DD). Resolve words like "yesterday" against today's date.
 - If the person is already in their contacts (same name, or clearly the same person), put that contact's id in existing_contact_id, otherwise ""."""
 
-RESEARCH = """You are the Research agent on NetworkOS. Use web search to find public information about one person a founder just met.
+RESEARCH = """You are the Research agent on RelationshipOS. Use web search to find public information about one person a founder just met.
 Public pages only: company sites, news, talks, public posts, public profiles. Never guess. If you can't tell which person it is, say so in summary and set confidence to "low".
 - role and company: their current ones, or the ones given if you can't confirm better.
 - recent: one sentence about something recent and public that matters for a conversation (a post, launch, hire, raise, talk). "" if none.
 - summary: two sentences on who they are."""
 
-STRATEGIST = """You are the Strategist on NetworkOS. Decide how much this relationship matters to the founder this week and what to do next.
+STRATEGIST = """You are the Strategist on RelationshipOS. Decide how much this relationship matters to the founder this week and what to do next.
 - score: 1 to 10 for how much this person can help with what the founder needs this week, weighted by how warm the relationship is (met in person, real conversation, promises made, a mutual).
 - signal: two to four words for why now (for example "Hiring signal", "Potential investor", "Beta fit").
 - next_action: a short imperative, such as "Follow up tonight", "Send the deck", "Ask for an intro".
@@ -91,9 +92,9 @@ STRATEGIST = """You are the Strategist on NetworkOS. Decide how much this relati
 - status: a few words on the relationship, such as "Warm, met yesterday".
 - tags: up to five short tags."""
 
-ANSWERER = """You are the Strategist on NetworkOS. Answer the founder's question about their network using only their contacts and memory below. Be specific and short: names, why, and what to do. If the answer isn't in what you have, say so. List the ids of contacts you mention in contact_ids."""
+ANSWERER = """You are the Strategist on RelationshipOS. Answer the founder's question about their network using only their contacts and memory below. Be specific and short: names, why, and what to do. If the answer isn't in what you have, say so. List the ids of contacts you mention in contact_ids."""
 
-OUTREACH = """You are the Outreach agent on NetworkOS. Write the follow-up email from the founder to this person.
+OUTREACH = """You are the Outreach agent on RelationshipOS. Write the follow-up email from the founder to this person.
 - Pick up the real conversation: name the place and what you talked about. Keep any promise the founder made.
 - Offer the give_first item if there is one, then make one clear ask that fits the next action.
 - Under 120 words. Plain, warm, specific. No hype, no invented facts, no placeholders in brackets.
@@ -189,6 +190,7 @@ async def _run(run: Run, user: User, contacts: list[Contact]) -> None:
     run.contact_id = contact.id
     _note(run, 0, "Understood your request and made a plan", f"{'New contact' if is_new else 'Updating'}: {contact.name}")
     _say(run, f"Plan: research {contact.name}, score, draft")
+    band.start(run, contact.name + (f" ({contact.company})" if contact.company else ""))
     handoff(run, "Planner", "Research", f"Look up {contact.name}" + (f" at {contact.company}" if contact.company else ""))
     run.stage = 1
     _save(contact, run, Interaction(user_id=user.id, contact_id=contact.id, what=run.request))
@@ -239,11 +241,13 @@ async def _run(run: Run, user: User, contacts: list[Contact]) -> None:
     handoff(run, "Outreach", "You", "Follow-up draft, waiting for your approval")
     run.stage, run.status, run.updated_at = 4, "waiting", now()
     _save(contact, run)
+    band.finish(run, f"Follow-up to {contact.name} is ready: score {contact.score}/10, next action \"{contact.next_action}\". Approve it in RelationshipOS.")
 
 
 async def _answer(run: Run, user: User, contacts: list[Contact], question: str) -> None:
     run.kind = "question"
     _note(run, 0, "Understood your question")
+    band.start(run, question[:80])
     handoff(run, "Planner", "Strategist", question)
     run.stage = 1
     _say(run, "Searching your memory")
@@ -264,6 +268,7 @@ async def _answer(run: Run, user: User, contacts: list[Contact], question: str) 
     _say(run, "Answer ready")
     run.stage, run.status, run.updated_at = 4, "answered", now()
     _save(run)
+    band.finish(run, ans.answer)
 
 
 async def approve(run: Run, contact: Optional[Contact], body: Optional[str]) -> None:

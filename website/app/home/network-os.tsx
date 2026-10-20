@@ -1,6 +1,6 @@
 "use client"
 
-/* NetworkOS home: the people you met, the AI team working on them, the draft waiting for you, and what memory keeps.
+/* RelationshipOS home: the people you met, the AI team working on them, the draft waiting for you, and what memory keeps.
    Everything comes from the agents service through /api/os/*; a run is polled while it works. It sits on the landing
    page's frost ground and panes of glass (globals.css). */
 
@@ -73,7 +73,7 @@ function Score({ n }: { n: number }) {
   return <span className={`nx-score${n >= 8 ? " is-high" : n >= 6 ? " is-mid" : ""}`}>{n}/10</span>
 }
 
-export function NetworkOS({ user, offline }: { user: User; offline: string | null }) {
+export function RelationshipOS({ user, offline }: { user: User; offline: string | null }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [people, setPeople] = useState<Contact[]>([])
   const [loaded, setLoaded] = useState(false)
@@ -296,7 +296,7 @@ export function NetworkOS({ user, offline }: { user: User; offline: string | nul
         <aside className="nx-side ly-pane">
           <Link className="nx-brand" href="/">
             <NetMark />
-            <span>NetworkOS</span>
+            <span>RelationshipOS</span>
           </Link>
           <nav className="nx-nav" aria-label="Main">
             {NAV.map((item) =>
@@ -431,7 +431,7 @@ export function NetworkOS({ user, offline }: { user: User; offline: string | nul
                 <b>{loaded ? "No one here yet" : "Loading your network…"}</b>
                 {loaded && (
                   <>
-                    <p>Tell NetworkOS about someone you met: who, where, what you talked about, and what either of you promised.</p>
+                    <p>Tell RelationshipOS about someone you met: who, where, what you talked about, and what either of you promised.</p>
                     <button type="button" className="nx-btn" onClick={() => { setQuery(EXAMPLE); askRef.current?.focus() }} disabled={!!offline}>Use an example</button>
                   </>
                 )}
@@ -588,7 +588,7 @@ export function NetworkOS({ user, offline }: { user: User; offline: string | nul
               })}
             </ol>
           ) : (
-            <p className="nx-fine">When you tell NetworkOS about someone, each agent&apos;s work shows up here.</p>
+            <p className="nx-fine">When you tell RelationshipOS about someone, each agent&apos;s work shows up here.</p>
           )}
           <div className="nx-sources">
             <h3 className="nx-label">Sources used</h3>
@@ -596,7 +596,7 @@ export function NetworkOS({ user, offline }: { user: User; offline: string | nul
               {run && (
                 <li>
                   <span className="nx-src-ic"><Icon n="chat" s={17} /></span>
-                  <div><b>Your note</b><span>What you told NetworkOS</span></div>
+                  <div><b>Your note</b><span>What you told RelationshipOS</span></div>
                 </li>
               )}
               {run && run.stage >= 1 && (
@@ -635,7 +635,7 @@ export function NetworkOS({ user, offline }: { user: User; offline: string | nul
             </header>
             <div className="nx-band-body">
               <div className="nx-band-side">
-                <div className="nx-room"><NetMark size={26} /><div><b>NetworkOS</b><span>net-ops-room</span></div></div>
+                <div className="nx-room"><NetMark size={26} /><div><b>RelationshipOS</b><span>relationshipos-room</span></div></div>
                 <ul>
                   <li className="is-on"><Icon n="board" s={16} />Workboard</li>
                   <li><Icon n="bot" s={16} />Agents</li>

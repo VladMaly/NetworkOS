@@ -1,6 +1,6 @@
-# NetworkOS architecture
+# RelationshipOS architecture
 
-NetworkOS is an AI relationship team for founders. You tell it who you met and what happened. It works out who they are, checks what you already know, decides how much the relationship matters and what to do next, drafts the follow-up, and waits for your approval. Approved outcomes go back into memory.
+RelationshipOS is an AI relationship team for founders. You tell it who you met and what happened. It works out who they are, checks what you already know, decides how much the relationship matters and what to do next, drafts the follow-up, and waits for your approval. Approved outcomes go back into memory.
 
 ```
 CAPTURE → UNDERSTAND → PRIORITIZE → NEXT ACTION → HUMAN APPROVAL → REMEMBER
@@ -96,6 +96,10 @@ A run moves through `stage` 0 to 4 (Planner, Research, Strategist, Outreach, don
 - Research uses OpenRouter's web search plugin, so there is no separate search API key. Its citations become the run's sources.
 - Cognee makes its own model calls when it builds the graph, through the same OpenRouter key and model, with a small local embedding model (fastembed) for vectors.
 
+## Band
+
+Each agent is a remote agent in Band (Planner, Research, Strategy, Outreach under `@vladmaly7/relationshipos-*`). Every run opens its own Band room, named `RelationshipOS · <person>`. The Planner adds the other three agents and the founder, and each handoff is a message from one agent @mentioning the next. The run ends with Outreach telling the founder the draft is ready. Band is best effort: if a call fails, the run carries on. Code: `agents/app/band.py`.
+
 ## Guardrails
 
 - Public information only. Nothing behind a login is read.
@@ -104,6 +108,5 @@ A run moves through `stage` 0 to 4 (Planner, Research, Strategist, Outreach, don
 
 ## Not built yet
 
-- Real Band connection: `band.py` runs the handoffs locally and logs them in the shape the Band panel shows. It switches to Band once we have their SDK docs and key.
 - Badge photo and voice upload: the ask bar takes typed text for now.
-- Sending email from NetworkOS.
+- Sending email from RelationshipOS.

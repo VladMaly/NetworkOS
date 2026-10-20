@@ -1,4 +1,4 @@
-/* One stroke icon set for NetworkOS, drawn on a 24 grid at 1.8 to match the landing page's icons. */
+/* One stroke icon set for RelationshipOS, drawn on a 24 grid at 1.8 to match the landing page's icons. */
 import type { ReactNode } from "react"
 
 const PATHS: Record<string, ReactNode> = {
@@ -51,7 +51,7 @@ export function Icon({ n, s = 18 }: { n: string; s?: number }) {
 /* The mark: three people on the ink tile, linked, the one you're about to meet in the brand orange. */
 export function NetMark({ size = 30 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="NetworkOS" style={{ display: "block", flex: "none" }}>
+    <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="RelationshipOS" style={{ display: "block", flex: "none" }}>
       <rect width="100" height="100" rx="24" fill="#232D36" />
       <path d="M30 66 50 30 70 66Z" fill="none" stroke="#F4F5F7" strokeOpacity="0.55" strokeWidth="5" strokeLinejoin="round" />
       <circle cx="50" cy="30" r="10" fill="#F4F5F7" />

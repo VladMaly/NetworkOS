@@ -30,6 +30,7 @@ npm run dev                       # http://localhost:3003
 | `AGENTS_SECRET` | Long random string. The website sends it on every call. Same value in both places. |
 | `OPENROUTER_API_KEY` | OpenRouter key (openrouter.ai/keys), used by the agents and by Cognee |
 | `AGENT_MODEL` | Optional. Any OpenRouter model ID. Defaults to `deepseek/deepseek-v4.1-flash` |
+| `PLANNER_*`, `RESEARCH_*`, `STRATEGIST_*`, `OUTREACH_*` | Band remote agents: `_AGENT_ID`, `_API_KEY`, `_HANDLE` for each (app.band.ai → Agents → Connect remote agent) |
 | `RESEARCH_WEB` | Optional. `0` turns off web search in Research |
 | `DATA_DIR` | Optional. Defaults to `./data` locally. On Railway set `/data` (the disk) |
 | Cognee settings | Defaults in `app/config.py`: the OpenRouter model for its graph, fastembed for embeddings. No Cognee key needed. |

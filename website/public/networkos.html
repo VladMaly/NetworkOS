@@ -283,6 +283,8 @@ h2 small { font-family: var(--f-body); font-size: 12.5px; font-weight: 500; colo
 .wi .ow { font-size: 11.5px; color: var(--muted); }
 .lane.human .wi { border-color: var(--mark); }
 .lane.doing .wi { border-color: var(--accent); }
+.lanes { flex-direction: column; overflow: visible; scroll-snap-type: none; margin-inline: 0; padding-inline: 0; }
+.lane { width: auto; max-width: none; min-height: 0; }
 .lane .none { font-size: 12.5px; color: var(--muted); }
 .memhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .memhead span { font-size: 12.5px; color: var(--muted); }
@@ -341,13 +343,13 @@ h2 small { font-family: var(--f-body); font-size: 12.5px; font-weight: 500; colo
 .pmeter i { display: block; height: 100%; background: var(--accent); border-radius: 2px; animation: grow 1.1s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes grow { from { width: 0; } }
 .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 6px; animation: pulse 1.2s ease-in-out infinite; vertical-align: middle; }
-.me { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 30px; max-width: 150px; padding: 0 10px 0 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-button.me:hover { border-color: var(--accent); }
-span.me { cursor: default; }
-.me img, .me .ini { width: 24px; height: 24px; border-radius: 50%; flex: none; object-fit: cover; }
-.me .ini { display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; }
-.me .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 400px) { .me { padding: 2px; } .me .nm { display: none; } }
+.mechip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 30px; max-width: 150px; padding: 0 10px 0 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+button.mechip:hover { border-color: var(--accent); }
+span.mechip { cursor: default; }
+.mechip img, .mechip .ini { width: 24px; height: 24px; border-radius: 50%; flex: none; object-fit: cover; }
+.mechip .ini { display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; }
+.mechip .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 400px) { .mechip { padding: 2px; } .mechip .nm { display: none; } }
 .signin { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 14px; padding: 8px 4px; }
 
 .stat-link { border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
@@ -404,7 +406,7 @@ span.me { cursor: default; }
 .bbtn { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600; }
 .bbtn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btrans { padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-.btrans .bub { max-width: 92%; }
+.btrans .bub { max-width: 92%; display: block; }
 .bstep { width: 100%; text-align: left; border: 0; background: var(--surface-2); border-radius: 10px; padding: 9px 12px; font-size: 14px; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .bstep .bname { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bstep b { font-weight: 600; }
@@ -706,6 +708,7 @@ const ONB_CTX = {
 };
 const NEG_CTX_RE = /\b(not interested|not a fit|no longer|bad terms|don't contact|do not contact)\b/i;
 let REAL = null;  // the owner's real contacts, once loaded (see loadContacts)
+const founder = () => (typeof ME !== "undefined" && ME ? ME.name.split(" ")[0] : "Sam");
 function withCtx(s) {
   if (REAL) { s.people = REAL.map(realPerson); return s; }
   s.people = s.people.map((p) => (ONB_CTX[p.id] ? { ...p, ...ONB_CTX[p.id] } : p)).map((p) => (SRC_OF[p.id] ? { ...p, from: SRC_OF[p.id] } : p));
@@ -964,8 +967,8 @@ function meChip() {
   const label = `Signed in as ${esc(ME.name)}${ME.email ? ` (${esc(ME.email)})` : ""}`;
   const inner = `${pic}<span class="nm">${esc(ME.name.split(" ")[0])}</span>`;
   return S.view === "onboard"
-    ? `<span class="me" title="${label}" aria-label="${label}">${inner}</span>`
-    : `<button class="me" type="button" data-nav="settings" title="${label}" aria-label="${label}. Open settings">${inner}</button>`;
+    ? `<span class="mechip" title="${label}" aria-label="${label}">${inner}</span>`
+    : `<button class="mechip" type="button" data-nav="settings" title="${label}" aria-label="${label}. Open settings">${inner}</button>`;
 }
 function bar() {
   if (S.view === "landing") return `<div class="brand">${ICON.logo}NetworkOS</div>${ME ? `<button class="signin" type="button" data-act="start">Continue as ${esc(ME.name.split(" ")[0])}</button>` : '<button class="signin" type="button" data-act="signin">Sign in</button>'}`;
@@ -1341,7 +1344,7 @@ function startProfiles() {
   if (!o.notes.trim()) return;
   applyProfiles();
   o.phase = "profile"; o.pi = 0;
-  S.board.unshift({ id: "W-02", title: "Build profiles from Sam's notes", col: "doing", owner: "Planner" });
+  S.board.unshift({ id: "W-02", title: `Build profiles from ${founder()}'s notes`, col: "doing", owner: "Planner" });
   o.picked.forEach((id) => { if (o.ex[id].facts.length) logMem("add", "Planner", `${first(person(id))}: ${o.ex[id].facts.join(" ")}`); });
   logMem("cognify", "Planner", "Linked your notes to the scanned profiles");
   render(false);
@@ -1369,7 +1372,7 @@ function startRegular() {
   o.notes = o.picked.map((id) => person(id).sample).filter(Boolean).join(" ");
   applyProfiles();
   ["Planner", "Strategy", "Outreach"].forEach((ag) => bill(ag, o.picked.length));
-  S.board.unshift({ id: "W-02", title: "Build profiles from Sam's notes", col: "done", owner: "Outreach" });
+  S.board.unshift({ id: "W-02", title: `Build profiles from ${founder()}'s notes`, col: "done", owner: "Outreach" });
   S.memStats.facts += o.picked.reduce((a, id) => a + o.ex[id].facts.length, 0);
   logMem("add", "Planner", "Profiles built from Sam's onboarding notes");
   finishOnboarding();
@@ -1459,7 +1462,7 @@ function finishOnboarding() {
     if (p.promise && p.promise.owe) S.promises.push({ pid: p.id, kind: "owe", t: p.promise.owe, due: p.promise.due });
     if (p.ctxPromise) S.promises.push({ pid: p.id, ...p.ctxPromise });
   });
-  S.board.unshift({ id: "W-11", title: "Weekly debrief with Sam", col: "todo", owner: "Planner" });
+  S.board.unshift({ id: "W-11", title: `Weekly debrief with ${founder()}`, col: "todo", owner: "Planner" });
   const skipped = cands().filter((p) => !o.picked.includes(p.id));
   if (skipped.length) logMem("add", "Strategy", `Not now: ${skipped.map(first).join(", ")}`);
   S.view = "moves";
@@ -1601,7 +1604,7 @@ function tick() {
   if (nx.ask) {
     d.phase = "ask";
     if (S.view !== "debrief") toast("🧭 Planner has a question for you");
-    moveItem("W-11", "human", "Planner", `Question for Sam: ${first(person(d.gap))}`);
+    moveItem("W-11", "human", "Planner", `Question for ${founder()}: ${first(person(d.gap))}`);
     render();
     return;
   }
@@ -1620,7 +1623,7 @@ function answerGap(text) {
   logMem("add", "Planner", `${first(p)}: ${text}`);
   if (NEGATIVE_RE.test(text)) p.rec = { ...p.rec, score: Math.max(2, p.rec.score - 4), action: "No outreach for now. Kept in memory.", why: `You said “${text}”. ${first(p)} stays in memory without a follow-up.` };
   d.phase = "working";
-  moveItem("W-11", "doing", "Outreach", "Weekly debrief with Sam");
+  moveItem("W-11", "doing", "Outreach", `Weekly debrief with ${founder()}`);
   d.i++;
   Object.values(d.items).forEach((w) => moveItem(w, "doing", "Outreach"));
   logMem("search", "Outreach", "“Sam's email style” → short, lead with a number");
@@ -1631,7 +1634,7 @@ function finish() {
   const d = S.d;
   d.phase = "done";
   (d.round || []).forEach((id) => (person(id).debriefed = true));
-  moveItem("W-11", "done", "Planner", "Weekly debrief with Sam");
+  moveItem("W-11", "done", "Planner", `Weekly debrief with ${founder()}`);
   S.next.forEach((n) => (n.isNew = false));
   d.picked.forEach((id) => {
     const p = person(id);
@@ -2166,11 +2169,11 @@ function viewAgents() {
         <li>Get Sam's approval on first messages to the top picks from the scan.</li>
         <li>Run Sam's first weekly debrief on the ${fresh().length} people met since Oct 6.</li>
         <li>Research, map to the raise, the hire and design partners, and draft follow-ups for approval.</li></ol></div></section>
-    <section><h2>Board <small>swipe →</small></h2>
+    <section><h2>Board</h2>
       <div class="lanes">${lanes.map(([k, label]) => {
         const items = S.board.filter((w) => w.col === k);
         return `<div class="lane ${k}"><h3><span>${label}</span><span>${items.length}</span></h3>${items.length ? items.map((w) =>
-          `<div class="wi"><span class="wid">${w.id}</span><span>${esc(w.title)}</span><span class="ow">${k === "human" ? "Waiting on Sam" : w.owner}</span></div>`).join("") : '<span class="none">Nothing here</span>'}</div>`;
+          `<div class="wi"><span class="wid">${w.id}</span><span>${esc(w.title)}</span><span class="ow">${k === "human" ? `Waiting on ${founder()}` : w.owner}</span></div>`).join("") : '<span class="none">Nothing here</span>'}</div>`;
       }).join("")}</div></section>
     <section><h2>Memory <small>Cognee</small></h2>
       <div class="card"><div class="memhead"><span>Shared by all 4 agents. Survives restarts.</span>
@@ -2423,7 +2426,7 @@ function bandDecide(kind) {
 }
 
 function bandItemHTML(it, lastStepId) {
-  if (it.type === "user") return `<div class="bub me"><span class="via">Sam</span>${esc(it.text)}</div>`;
+  if (it.type === "user") return `<div class="bub me"><span class="via">${esc(founder())}</span>${esc(it.text)}</div>`;
   if (it.type === "handoff") return `<p class="bhand">${esc(it.text)}</p>`;
   if (it.type === "note") return `<p class="bnote">${esc(it.text)}</p>`;
   if (it.type === "step") {

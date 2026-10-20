@@ -54,6 +54,8 @@ body { margin: 0; background: #E3E9EE; -webkit-font-smoothing: antialiased; }
 .ly-google { margin-left: 8px; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border: 1px solid rgba(28,40,49,0.12); border-radius: 12px; background: #fff; color: var(--top); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 2px rgba(28,40,49,0.06), 0 4px 14px rgba(28,40,49,0.06); transition: box-shadow var(--duration-ui) var(--ease-smooth), transform var(--duration-ui) var(--ease-smooth); }
 .ly-google:hover { box-shadow: 0 1px 2px rgba(28,40,49,0.08), 0 6px 20px rgba(28,40,49,0.1); }
 .ly-google:active { transform: translateY(1px); }
+a.ly-google { text-decoration: none; }
+.ly-avatar { border-radius: 50%; }
 :is(a, button, input):focus-visible { outline: 2px solid rgb(var(--lr) / calc(0.35 * var(--la))); outline-offset: 2px; }
 
 /* the stage and the panel */
@@ -242,7 +244,7 @@ body { margin: 0; background: #E3E9EE; -webkit-font-smoothing: antialiased; }
   .os-sheet { display: none; }
   .ly-top { top: 20px; left: 24px; right: 20px; }
   .ly-top nav a:first-child { display: none; }
-  .ly-top nav a { display: none; }
+  .ly-top nav a:not(.ly-google) { display: none; }
   .ly-google { margin-left: 0; height: 36px; padding: 0 12px; font-size: 13px; }
   .ly-below { width: calc(100% - 32px); gap: 80px; }
   .ly-steps, .ly-versus, .ly-ideas { grid-template-columns: minmax(0, 1fr); }

@@ -1,5 +1,6 @@
 import { OneScreen } from "./components/one-screen"
 import { Waitlist } from "./components/waitlist"
+import { currentUser } from "./lib/session"
 
 const STEPS = [
   ["Read", "The badge and the Luma page.", "name · company · event"],
@@ -18,9 +19,10 @@ const IDEAS = [
   ["Night recap", "Who you met, what you promised, what is sent and what is waiting."],
 ]
 
-export default function Page() {
+export default async function Page() {
+  const user = await currentUser()
   return (
-    <OneScreen>
+    <OneScreen user={user && { name: user.name, image: user.image }}>
       <main className="ly-below">
         <section className="ly-section" id="how">
           <div className="ly-head">

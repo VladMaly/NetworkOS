@@ -195,7 +195,7 @@ const CHAT_ICON = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const HAND_ICON = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M7 12h10M13 8l4 4-4 4M3 5v14M21 5v14" /></svg>
 const SEND_ICON = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 12l16-8-6 16-3-7z" /></svg>
 
-export function OneScreen({ children }: { children?: ReactNode }) {
+export function OneScreen({ children, user }: { children?: ReactNode; user?: { name: string; image: string | null } | null }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "")
   const pageRef = useRef<HTMLDivElement>(null)
   const [sheets, setSheets] = useState<Sheet[]>([])
@@ -269,12 +269,19 @@ export function OneScreen({ children }: { children?: ReactNode }) {
         <nav>
           <a href="#how">How it works</a>
           <a href="#join">Early access</a>
-          <form action={signInWithGoogle}>
-            <button type="submit" className="ly-google">
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" /><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" /><path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1A10 10 0 0 0 2 12c0 1.6.4 3.1 1.1 4.6L6.4 14z" /><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.4 3-4.1 5.6-4.1z" /></svg>
-              Log in / Sign up with Google
-            </button>
-          </form>
+          {user ? (
+            <a className="ly-google" href="/home">
+              {user.image ? <img src={user.image} alt="" width={20} height={20} className="ly-avatar" referrerPolicy="no-referrer" /> : null}
+              Signed in as {user.name.split(" ")[0]}
+            </a>
+          ) : (
+            <form action={signInWithGoogle}>
+              <button type="submit" className="ly-google">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" /><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" /><path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1A10 10 0 0 0 2 12c0 1.6.4 3.1 1.1 4.6L6.4 14z" /><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10c.8-2.4 3-4.1 5.6-4.1z" /></svg>
+                Sign in with Google
+              </button>
+            </form>
+          )}
         </nav>
       </header>
 

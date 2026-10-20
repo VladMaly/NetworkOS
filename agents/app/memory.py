@@ -60,6 +60,39 @@ async def recall(user_id: str, question: str) -> str:
     return "\n".join(p for p in parts if p).strip()
 
 
+async def remember_many(user_id: str, texts: list[str]) -> None:
+    """Save several notes in one write and one graph build (the NetworkOS page loading a whole network at once)."""
+    if not texts:
+        return
+    try:
+        async with _write:
+            await cognee.add(texts, dataset_name=dataset(user_id))
+    except Exception:
+        log.exception("cognee.add failed for %s", dataset(user_id))
+        return
+    task = _pending.get(user_id)
+    if task is None or task.done():
+        _pending[user_id] = asyncio.create_task(_cognify(user_id))
+
+
+async def stats(user_id: str) -> dict[str, object]:
+    """What Cognee holds for this user: documents, the graph's size, and whether a graph build is running."""
+    task = _pending.get(user_id)
+    out: dict[str, object] = {"dataset": dataset(user_id), "documents": 0, "nodes": 0, "edges": 0, "building": bool(task and not task.done())}
+    try:
+        ds = next((d for d in await cognee.datasets.list_datasets() if d.name == dataset(user_id)), None)
+        if ds is None:
+            return out
+        out["documents"] = len(await cognee.datasets.list_data(ds.id))
+        from cognee.context_global_variables import set_database_global_context_variables
+        from cognee.infrastructure.databases.graph import get_graph_engine
+        async with set_database_global_context_variables(ds.id, ds.owner_id):
+            out["nodes"], out["edges"] = await (await get_graph_engine()).get_graph_counts()
+    except Exception as e:
+        log.info("couldn't read Cognee stats for %s: %s", dataset(user_id), e)
+    return out
+
+
 _writes: set[asyncio.Task[None]] = set()
 
 

@@ -10,7 +10,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import col, select
 
-from . import band, store
+from . import band, memory, store
 from .config import AGENTS_SECRET, PRICE_IN, PRICE_OUT
 from .pipeline import approve, run_pipeline
 from .store import Contact, Interaction, Run, User, now, session
@@ -222,3 +222,56 @@ def patch_person(contact_id: str, body: dict[str, Any], uid: Uid) -> dict[str, A
         s.merge(c)
         s.commit()
     return _contact_out(c, {})
+
+
+# ── memory ──
+
+class SeedPerson(BaseModel):
+    name: str
+    role: str = ""
+    company: str = ""
+    signal: str = ""
+    why: str = ""
+    next_action: str = ""
+    status: str = ""
+    mutual: str = ""
+    i_promised: str = ""
+    score: int = 0
+    tags: list[str] = []
+
+
+class SeedIn(BaseModel):
+    people: list[SeedPerson]
+
+
+def _person_note(p: SeedPerson) -> str:
+    who = p.name + (f", {p.role}" if p.role else "") + (f" at {p.company}" if p.company else "")
+    parts = [f"{who}.", f"How we know each other: {p.signal}." if p.signal else "", p.why,
+             f"Introduced through {p.mutual}." if p.mutual else "", f"I promised: {p.i_promised}." if p.i_promised else "",
+             f"Next action: {p.next_action}." if p.next_action else "", f"Relationship: {p.status}." if p.status else ""]
+    return " ".join(x.strip() for x in parts if x.strip())
+
+
+@app.post("/memory/seed")
+async def seed_memory(body: SeedIn, uid: Uid) -> dict[str, Any]:
+    """Load a network in one go: each new person becomes a contact and a note in Cognee, then one graph build."""
+    _user(uid)
+    people = [p for p in body.people[:60] if p.name.strip()]
+    with session() as s:
+        known = {c.name.lower() for c in s.exec(select(Contact).where(Contact.user_id == uid)).all()}
+        fresh = [p for p in people if p.name.strip().lower() not in known]
+        for p in fresh:
+            s.add(Contact(user_id=uid, name=p.name.strip()[:200], role=p.role[:200], company=p.company[:200], signal=p.signal[:400],
+                          why=p.why[:1000], next_action=p.next_action[:400], status=p.status[:100], mutual=p.mutual[:200],
+                          i_promised=p.i_promised[:400], score=max(0, min(10, p.score)), tags=[t[:40] for t in p.tags[:5]]))
+        s.commit()
+        total = len(known) + len(fresh)
+    await memory.remember_many(uid, [_person_note(p) for p in fresh])
+    return {"added": len(fresh), "already_known": len(people) - len(fresh), "people": total, **await memory.stats(uid)}
+
+
+@app.get("/memory")
+async def memory_stats(uid: Uid) -> dict[str, Any]:
+    with session() as s:
+        people = len(s.exec(select(Contact.id).where(Contact.user_id == uid)).all())
+    return {"people": people, **await memory.stats(uid)}

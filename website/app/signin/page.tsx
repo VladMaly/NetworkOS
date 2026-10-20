@@ -8,14 +8,18 @@ import "../home/network-os.css"
 
 export const metadata: Metadata = { title: "Sign in · RelationshipOS" }
 
-export default async function SignInPage() {
+/* Where to go after signing in: a path on this site (?next=/…), the dashboard otherwise. */
+const safeNext = (next: string | undefined) => (next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/home")
+
+export default async function SignInPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   await connection()
+  const next = safeNext((await searchParams).next)
   const user = await currentUser()
-  if (user) redirect("/home")
+  if (user) redirect(next)
 
   async function google() {
     "use server"
-    await signIn("google", { redirectTo: "/home" })
+    await signIn("google", { redirectTo: next })
   }
 
   return (

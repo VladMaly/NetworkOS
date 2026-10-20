@@ -1,0 +1,6 @@
+openai==2.54.0
+cognee==1.6.5
+fastapi==0.156.1
+uvicorn[standard]==0.54.0
+sqlmodel==0.0.48
+python-dotenv==1.2.4

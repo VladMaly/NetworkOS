@@ -1,25 +1,17 @@
 # NetworkOS
 
-Your AI relationship team: snap a badge at an event, and NetworkOS works out who they are, remembers what you talked about, and drafts a warm follow-up for you to approve.
+Your AI relationship team: tell it who you met and what happened, and it works out who they are, remembers what you talked about, decides what to do next and drafts a warm follow-up for you to approve.
 
 ## Folders
 
 | Folder | What it is |
 |---|---|
-| `website/` | The Next.js app: landing page (`/`), the NetworkOS dashboard (`/home`) and its API routes (`app/api/`). Deployed on Vercel. |
+| `website/` | The Next.js app: landing page (`/`), sign-in (`/signin`), the dashboard (`/home`) and its API routes. Deployed on Vercel. |
+| `agents/` | Python service: the AI team (Planner, Research, Strategist, Outreach), Cognee memory, SQLite app state. Deployed on Railway. |
+| `docs/` | Architecture and setup. Start with [docs/architecture.md](docs/architecture.md). |
 
-Add new parts (for example `backend/`) as their own folders beside `website/`, each with its own README and dependencies.
+Add new parts as their own folders beside these, each with its own README and dependencies.
 
-## Run the website
+## Run and deploy
 
-```bash
-cd website
-npm install
-npm run dev     # http://localhost:3003
-```
-
-## Deploy on Vercel
-
-Import `VladMaly/NetworkOS` and set **Root Directory** to `website`. Leave the rest at the Next.js defaults.
-
-The waitlist needs storage on Vercel: in the project go to **Storage → Upstash Redis**, connect it, and redeploy. Locally it writes `website/data/waitlist.json` instead.
+See [docs/setup.md](docs/setup.md): running both parts locally, the environment variables, Google sign-in, and deploying to Vercel (Root Directory `website`) and Railway (Root Directory `agents`).

@@ -242,7 +242,8 @@ async def _run(run: Run, user: User, contacts: list[Contact]) -> None:
     handoff(run, "Outreach", "You", "Follow-up draft, waiting for your approval")
     run.stage, run.status, run.updated_at = 4, "waiting", now()
     _save(contact, run)
-    band.finish(run, f"Follow-up to {contact.name} is ready: score {contact.score}/10, next action \"{contact.next_action}\". Approve it in RelationshipOS.")
+    band.finish(run, f"Draft for your review. {contact.name}: {contact.score}/10, next action \"{contact.next_action}\".\n\n"
+                     f"Subject: {run.draft_subject}\n\n{run.draft_body}\n\nApprove, edit or reject it in NetworkOS (Agents → Band).")
 
 
 async def _answer(run: Run, user: User, contacts: list[Contact], question: str) -> None:

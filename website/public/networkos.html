@@ -1352,7 +1352,7 @@ function startProfiles() {
 function startRegular() {
   clearTimeout(timer);
   S = SEED();
-  B = bandComplete();
+  B = REAL ? bandFresh() : bandComplete();
   const o = S.onb;
   o.company = "Ledgerly, bookkeeping for freelancers";
   o.sources = SOURCES.map((s) => s.id);
@@ -2331,8 +2331,8 @@ function bandLive() {
   if (st) st.innerHTML = bandStatusHTML();
 }
 /* What the background team needs from Sam right now: a Band approval and/or a debrief question. */
-const bandPendingCard = () => (B.phase === "waiting" ? [...B.items].reverse().find((i) => i.type === "approval" && !i.decided) : null);
-function needsCount() { return (bandPendingCard() ? 1 : 0) + (S.d.phase === "ask" ? 1 : 0); }
+const bandPendingCard = () => (!REAL && B.phase === "waiting" ? [...B.items].reverse().find((i) => i.type === "approval" && !i.decided) : null);
+function needsCount() { return (bandPendingCard() || (LIVE.run && LIVE.run.status === "waiting") ? 1 : 0) + (S.d.phase === "ask" ? 1 : 0); }
 function needsYouHTML() {
   const card = bandPendingCard();
   const ask = S.d.phase === "ask" ? person(S.d.gap) : null;
@@ -2344,6 +2344,14 @@ function needsYouHTML() {
       <div class="draft clamp">${esc(card.draft)}</div>
       <div class="acts3"><button class="btn sm" type="button" data-act="band-approve">Approve</button><button class="btn sm quiet" type="button" data-act="band-edit-home">Edit</button><button class="btn sm quiet" type="button" data-act="band-reject">Reject</button></div>
       <div class="band-line"><span>Band #sam-network · 4 agents</span><span>${(t.tokens / 1000).toFixed(1)}k tok · $${t.cost.toFixed(2)}</span></div>
+    </section>`;
+  const lr = LIVE.run;
+  if (!card && lr && lr.status === "waiting" && lr.draft_body) html += `<section class="card needs" aria-label="Needs your approval">
+      <div class="needs-hd"><span class="label">Needs your approval</span><button class="linkish" type="button" data-nav="band">See the run</button></div>
+      <div class="needs-who"><span aria-hidden="true">✉️</span> <b>Outreach</b> drafted${lr.draft_subject ? `: ${esc(lr.draft_subject)}` : " a follow-up"}</div>
+      <div class="draft clamp">${esc(lr.draft_body)}</div>
+      <div class="acts3"><button class="btn sm" type="button" data-act="live-approve">Approve</button><button class="btn sm quiet" type="button" data-nav="band">Review in Band</button></div>
+      <div class="band-line"><span>Band room ${esc(lr.band_room ? lr.band_room.slice(0, 8) : "opening")} · 4 agents</span><span>${lr.cost_usd ? `$${lr.cost_usd.toFixed(4)}` : ""}</span></div>
     </section>`;
   if (ask) html += `<section class="card needs" aria-label="Your agents have a question">
       <div class="needs-hd"><span class="label">Your agents have a question</span><button class="linkish" type="button" data-nav="debrief">Open debrief</button></div>
@@ -2633,8 +2641,10 @@ async function liveStart(text) {
   } catch (e) { Object.assign(LIVE, { status: "offline", error: e.message }); liveRender(); }
 }
 async function livePoll(id) {
+  const was = LIVE.run && LIVE.run.status;
   try { LIVE.run = await liveJSON(`/api/demo?run=${encodeURIComponent(id)}`); LIVE.error = ""; } catch (e) { LIVE.error = e.message; }
   liveRender();
+  if (LIVE.run && LIVE.run.status !== was && (S.view === "moves" || S.view === "agents")) render();  // the approval card and badges
   const r = LIVE.run;
   // keep polling while it works, and a little longer for the Band room id to land
   if (!r || r.status === "running" || (!r.band_room && LIVE.band && LIVE.extra++ < 8)) LIVE.poll = setTimeout(() => livePoll(id), 1500);
@@ -2647,6 +2657,7 @@ async function liveApprove() {
     toast("Approved on the real agents. Cognee is keeping the outcome.");
   } catch (e) { LIVE.error = e.message; }
   liveRender();
+  if (S.view === "moves") render();
 }
 function liveBadge() {
   if (LIVE.status === "checking") return '<span class="lbadge">Checking Band…</span>';

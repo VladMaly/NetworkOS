@@ -86,6 +86,42 @@ async def _post(run_id: str, frm: str, to: str, text: str, after: Optional[async
         log.warning("Band post %s → %s failed: %s", frm, to, e)
 
 
+_board: dict[str, str] = {}  # run id → its task on the room's Band board
+
+
+def _id_of(res: object) -> Optional[str]:
+    for obj in (res, getattr(res, "data", None)):
+        if isinstance(obj, dict) and obj.get("id"):
+            return str(obj["id"])
+        if obj is not None and getattr(obj, "id", None):
+            return str(getattr(obj, "id"))
+    return None
+
+
+async def _task(run_id: str, subject: str = "", comment: str = "", active: str = "", after: Optional[asyncio.Task[None]] = None) -> None:
+    """The run as a task on the Band board: created by the Planner, then moved along with a comment at every step."""
+    if after:
+        await asyncio.gather(after, return_exceptions=True)
+    room = await _rooms[run_id] if run_id in _rooms else None
+    if not room or not PLANNER:
+        return
+    tools = AgentTools(room, _client(PLANNER))
+    try:
+        if run_id not in _board:
+            tid = _id_of(await tools.create_task(subject=(subject or "RelationshipOS run")[:120], detail=comment or None))
+            if tid:
+                _board[run_id] = tid
+        elif comment or active:
+            await tools.update_task(_board[run_id], comment=comment or None, active_form=active or None)
+    except Exception as e:
+        log.warning("Band board update for %s failed: %s", run_id, e)
+
+
+def board(run: Run, comment: str, active: str = "") -> None:
+    if enabled() and run.id in _rooms:
+        _chain[run.id] = asyncio.create_task(_task(run.id, comment=comment, active=active, after=_chain.get(run.id)))
+
+
 def room_id(run_id: str) -> Optional[str]:
     """The run's Band room once it's open, else None."""
     task = _rooms.get(run_id)
@@ -96,6 +132,7 @@ def start(run: Run, title: str) -> None:
     """Open the run's Band room in the background."""
     if enabled() and run.id not in _rooms:
         _rooms[run.id] = asyncio.create_task(_open_room(f"RelationshipOS · {title}"))
+        _chain[run.id] = asyncio.create_task(_task(run.id, subject=f"RelationshipOS · {title}", comment=f"Request: {run.request[:300]}", after=_chain.get(run.id)))
 
 
 def handoff(run: Run, frm: str, to: str, what: str) -> None:
@@ -104,6 +141,7 @@ def handoff(run: Run, frm: str, to: str, what: str) -> None:
         return
     start(run, run.request[:80])
     _chain[run.id] = asyncio.create_task(_post(run.id, frm, to, f"{what}", _chain.get(run.id)))
+    _chain[run.id] = asyncio.create_task(_task(run.id, comment=f"{frm} → {to}: {what[:300]}", active=f"{to} is working", after=_chain.get(run.id)))
 
 
 def approved(run: Run, what: str) -> None:
@@ -113,9 +151,13 @@ def approved(run: Run, what: str) -> None:
     start(run, run.request[:80])  # the room, or a new one if this service restarted since the run
     _chain[run.id] = asyncio.create_task(_post(run.id, "Outreach", "You", f"Approved: {what}", _chain.get(run.id)))
     _chain[run.id] = asyncio.create_task(_post(run.id, "Planner", "You", "Saved the outcome to Cognee memory.", _chain.get(run.id)))
+    _chain[run.id] = asyncio.create_task(_task(run.id, comment=f"Approved by you: {what}. Outcome saved to Cognee.", active="Done", after=_chain.get(run.id)))
 
 
 def finish(run: Run, summary: str) -> None:
     """The last word in the room, to the founder: what's waiting for them."""
     if enabled() and run.id in _rooms:
         _chain[run.id] = asyncio.create_task(_post(run.id, "Outreach" if run.kind == "capture" else "Strategist", "You", summary, _chain.get(run.id)))
+        review = run.kind == "capture" and run.status == "waiting"
+        _chain[run.id] = asyncio.create_task(_task(run.id, comment="Draft ready: waiting for your review and approval" if review else "Answered",
+                                                    active="Waiting for your approval" if review else "Done", after=_chain.get(run.id)))
